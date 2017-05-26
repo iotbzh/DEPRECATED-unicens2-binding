@@ -1,0 +1,63 @@
+<?xml version="1.0"?>
+<unicens async_bandwidth="300">
+
+  <!-- Server device -->
+  <device node_address="0x211">
+    <channel channel_name="MediaUCS2" bandwidth="4" data_type="SYNC">
+      <socket dir="IN" port="USB" channel_addr="0x1" packets_per_xact="64"/>
+      <socket dir="OUT" port="MOST"/>
+    </channel>
+  </device>
+
+  <!-- Slim Amplifier -->
+  <device node_address="0x270" script="slim-amp-config">
+    <channel channel_name="MediaUCS2" bandwidth="4" data_type="SYNC">
+      <socket dir="IN" port="MOST"/>
+      <socket dir="OUT" port="I2S" i2s_pin="SRXA0" 
+              i2s_fs_speed="64" i2s_align="Left16"/>
+    </channel>
+  </device>
+
+  <script name="slim-amp-config">
+      <action type="SEND_MSG" fblock_id="0x0" function_id="0x6C1" 
+          op_request="0x2" op_response="0xC"
+          load_req_hex="00 00 01 01" 
+          load_res_hex="0F 00"/>
+      <action type="SEND_MSG" fblock_id="0x0" function_id="0x6C4"
+          op_request="0x2" op_response="0xC"
+          load_req_hex="0F 00 00 00 2A 02 03 E8 1B 80" 
+          load_res_hex="0F 00 2A 02"/>
+      <action type="SEND_MSG" fblock_id="0x0" function_id="0x6C4"
+          op_request="0x2" op_response="0xC"
+          load_req_hex="0F 00 00 00 2A 02 03 E8 11 B8" 
+          load_res_hex="0F 00 2A 02"/>
+      <action type="SEND_MSG" fblock_id="0x0" function_id="0x6C4"
+          op_request="0x2" op_response="0xC"
+          load_req_hex="0F 00 00 00 2A 02 03 E8 12 60" 
+          load_res_hex="0F 00 2A 02"/>
+      <action type="SEND_MSG" fblock_id="0x0" function_id="0x6C4"
+          op_request="0x2" op_response="0xC"
+          load_req_hex="0F 00 00 00 2A 02 03 E8 13 A0" 
+          load_res_hex="0F 00 2A 02"/>
+      <action type="SEND_MSG" fblock_id="0x0" function_id="0x6C4"
+          op_request="0x2" op_response="0xC"
+          load_req_hex="0F 00 00 00 2A 02 03 E8 14 48" 
+          load_res_hex="0F 00 2A 02"/>
+      <action type="SEND_MSG" fblock_id="0x0" function_id="0x6C4"
+          op_request="0x2" op_response="0xC"
+          load_req_hex="0F 00 00 00 2A 05 03 E8 20 00 89 77 72" 
+          load_res_hex="0F 00 2A 05"/>
+      <action type="SEND_MSG" fblock_id="0x0" function_id="0x6C4"
+          op_request="0x2" op_response="0xC"
+          load_req_hex="0F 00 00 00 2A 02 03 E8 06 00" 
+          load_res_hex="0F 00 2A 02"/>
+      <action type="SEND_MSG" fblock_id="0x0" function_id="0x6C4"
+          op_request="0x2" op_response="0xC"
+          load_req_hex="0F 00 00 00 2A 02 03 E8 05 00" 
+          load_res_hex="0F 00 2A 02"/>
+      <action type="SEND_MSG" fblock_id="0x0" function_id="0x6C4"
+          op_request="0x2" op_response="0xC"
+          load_req_hex="0F 00 00 00 2A 03 03 E8 07 01 50" 
+          load_res_hex="0F 00 2A 03"/>
+  </script>
+</unicens>

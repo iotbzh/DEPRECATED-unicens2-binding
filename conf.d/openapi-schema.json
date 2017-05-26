@@ -1,0 +1,764 @@
+{
+	"title": "A JSON Schema for OpenApi 3.0 API.",
+	"id": "http://www.openapis.org/v3/schema.json#",
+	"$schema": "http://json-schema.org/draft-04/schema#",
+	"type": "object",
+	"required": [
+		"openapi",
+		"info",
+		"paths"
+	],
+	"additionalProperties": false,
+	"patternProperties": {
+		"^X-": {
+			"$ref": "#/definitions/vendorExtension"
+		}
+	},
+	"properties": {
+		"openapi": {
+			"type": "string",
+			"enum": [
+				"3.0.0"
+			],
+			"description": "Specifies the OpenAPI Specification version being used. It can be used by tooling Specifications and clients to interpret the version. The structure shall be major.minor.patch, where patch versions must be compatible with the existing major.minor tooling. Typically patch versions will be introduced to address errors in the documentation, and tooling should typically be compatible with the corresponding major.minor (3.0.*). Patch versions will correspond to patches of this document."
+		},
+		"info": {
+			"$ref": "#/definitions/info"
+		},
+		"servers": {
+			"type": "array",
+			"items": {
+				"$ref": "#/definitions/server"
+			},
+			"uniqueItems": true
+		},
+		"paths": {
+			"$ref": "#/definitions/paths"
+		},
+		"components": {
+			"$ref": "#/definitions/components"
+		},
+		"security": {
+			"type": "array",
+			"items": {
+				"$ref": "#/definitions/securityRequirement"
+			},
+			"uniqueItems": true
+		},
+		"tags": {
+			"type": "array",
+			"items": {
+				"$ref": "#/definitions/tag"
+			},
+			"uniqueItems": true
+		},
+		"externalDocs": {
+			"$ref": "#/definitions/externalDocs"
+		}
+	},
+	"definitions": {
+		"vendorExtension": {
+			"description": "Any property starting with x- is valid.",
+			"additionalProperties": true,
+			"additionalItems": true
+		},
+		"contact": {
+			"type": "object",
+			"description": "Contact information for the exposed API.",
+			"additionalProperties": false,
+			"patternProperties": {
+				"^X-": {
+					"$ref": "#/definitions/vendorExtension"
+				}
+			},
+			"properties": {
+				"name": {
+					"type": "string",
+					"description": "The identifying name of the contact person/organization."
+				},
+				"url": {
+					"type": "string",
+					"description": "The URL pointing to the contact information. MUST be in the format of a URL."
+				},
+				"email": {
+					"type": "string",
+					"description": "The email address of the contact person/organization. Must be in the format of an email address."
+				}
+			}
+		},
+		"license": {
+			"type": "object",
+			"description": "License information for the exposed API.",
+			"required": [ "name" ],
+			"additionalProperties": false,
+			"patternProperties": {
+				"^X-": {
+					"$ref": "#/definitions/vendorExtension"
+				}
+			},
+			"properties": {
+				"name": {
+					"type": "string",
+					"description": "The license name used for the API."
+				},
+				"url": {
+					"type": "string",
+					"description": "A URL to the license used for the API. MUST be in the format of a URL."
+				}
+			}
+		},
+		"info": {
+			"type": "object",
+			"description": "The object provides metadata about the API. The metadata can be used by the clients if needed, and can be presented in the OpenApi-UI for convenience.",
+			"required": [
+				"title",
+				"version"
+			],
+			"additionalProperties": false,
+			"patternProperties": {
+				"^X-": {
+					"$ref": "#/definitions/vendorExtension"
+				}
+			},
+			"properties": {
+				"title": {
+					"type": "string",
+					"description": "The title of the application."
+				},
+				"description": {
+					"type": "string",
+					"description": "A short description of the application. CommonMark syntax can be used for rich text representation."
+				},
+				"termsOfService": {
+					"type": "string",
+					"description": "A URL to the Terms of Service for the API."
+				},
+				"contact": {
+					"$ref": "#/definitions/contact"
+				},
+				"license": {
+					"$ref": "#/definitions/license"
+				},
+				"version": {
+					"type": "string",
+					"description": "Provides the version of the application API (not to be confused with the specification version)."
+				}
+			}
+		},
+		"server": {
+			"type": "object",
+			"description": "An object representing a Server.",
+			"additionalProperties": false,
+			"patternProperties": {
+				"^X-": {
+					"$ref": "#/definitions/vendorExtension"
+				}
+			},
+			"properties": {
+				"url": {
+					"type": "string",
+					"description": "A absolute URL to the target host. This URL supports template variables and may be relative, to indicate that the host location is relative to the location where the OpenAPI Specification is being served. Templates are optional and specified by the Host Template Parameter syntax. Template substitutions will be made when a variable is named in {brackets}."
+				},
+				"description": {
+					"type": "string",
+					"description": "An optional string describing the host designated by the URL."
+				},
+				"variables": {
+					"$ref": "#/definitions/serverVariables"
+				}
+			}
+		},
+		"paths": {
+			"type": "object",
+			"description": "Holds the relative paths to the individual endpoints and their operations. The path is appended to the URL from the Server Object in order to construct the full URL. The Paths MAY be empty, due to ACL constraints.",
+			"patternProperties": {
+				"^X-": {
+					"$ref": "#/definitions/vendorExtension"
+				},
+				"^/": {
+					"$ref": "#/definitions/pathItem"
+				}
+			},
+			"additionalProperties": false
+		},
+		"pathItem": {
+			"type": "object",
+			"description": "Describes the operations available on a single path. A Path Item MAY be empty, due to ACL constraints. The path itself is still exposed to the documentation viewer but they will not know which operations and parameters are available.",
+			"properties": {
+				"$ref": {
+					"type": "string",
+					"description": "Allows for an external definition of this path item. The referenced structure MUST be in the format of a Path Item Object. If there are conflicts between the referenced definition and this Path Item's definition, the behavior is undefined."
+				},
+				"summary": {
+					"type": "string",
+					"description": "An optional, string summary, intended to apply to all operations in this path."
+				},
+				"description": {
+					"type": "string",
+					"description": "An optional, string description, intended to apply to all operations in this path. CommonMark syntax can be used for rich text representation."
+				},
+				"get": {
+					"$ref": "#/definitions/operation"
+				},
+				"put": {
+					"$ref": "#/definitions/operation"
+				},
+				"post": {
+					"$ref": "#/definitions/operation"
+				},
+				"delete": {
+					"$ref": "#/definitions/operation"
+				},
+				"options": {
+					"$ref": "#/definitions/operation"
+				},
+				"head": {
+					"$ref": "#/definitions/operation"
+				},
+				"patch": {
+					"$ref": "#/definitions/operation"
+				},
+				"trace": {
+					"$ref": "#/definitions/operation"
+				},
+				"servers": {
+					"type": "array",
+					"items": {
+						"$ref": "#/definitions/server"
+					}
+				},
+				"parameters": {
+					"type": "array",
+					"items": {
+						"oneOf": [
+							{ "$ref": "#/definitions/parameter" },
+							{ "$ref": "#/definitions/reference" }
+						]
+					}
+				}
+			},
+			"patternProperties": {
+				"^X-": {
+					"$ref": "#/definitions/vendorExtension"
+				}
+			},
+			"additionalProperties": false
+		},
+		"operation": {
+			"type": "object",
+			"description": "Describes a single API operation on a path.",
+			"required": [ "responses" ],
+			"properties": {
+				"tags": {
+					"type": "array",
+					"items": [
+						{ "type": "string" }
+					],
+					"description": "A list of tags for API documentation control. Tags can be used for logical grouping of operations by resources or any other qualifier."
+				},
+				"summary": {
+					"type": "string",
+					"description": "A short summary of what the operation does. For maximum readability in editing or documentation generation tools, this field SHOULD be less than 120 characters."
+				},
+				"description": {
+					"type": "string",
+					"description": "A verbose explanation of the operation behavior. CommonMark syntax can be used for rich text representation."
+				},
+				"externalDocs": {
+					"$ref": "#/definitions/externalDocs"
+				},
+				"operationId": {
+					"type": "string",
+					"description": "Unique string used to identify the operation. The id MUST be unique among all operations described in the API. Tools and libraries MAY use the operationId to uniquely identify an operation, therefore, it is recommended to follow common programming naming conventions."
+				},
+				"parameters": {
+					"type": "array",
+					"items": {
+						"oneOf": [
+							{ "$ref": "#/definitions/parameter" },
+							{ "$ref": "#/definitions/reference" }
+						]
+					},
+					"description": "A list of parameters that are applicable for this operation. If a parameter is already defined at the Path Item, the new definition will override it but can never remove it. The list MUST NOT include duplicated parameters. A unique parameter is defined by a combination of a name and location. The list can use the Reference Object to link to parameters that are defined at the OpenAPI Object's components/parameters."
+				},
+				"requestBody": {
+					"oneOf": [
+						{ "$ref": "#/definitions/requestBody" },
+						{ "$ref": "#/definitions/reference" }
+					],
+					"description": "The request body applicable for this operation. The requestBody is only supported in HTTP methods where the HTTP 1.1 specification has explicitly defined semantics for request bodies. In other cases where the HTTP spec is vague, requestBody SHALL be ignored by consumers."
+				},
+				"responses": {
+					"$ref": "#/definitions/responses",
+					"description": "Required. The list of possible responses as they are returned from executing this operation."
+				},
+				"callbacks": {
+					"$ref": "#/definitions/callbacks",
+					"description": "The list of possible callbacks as they are returned from executing this operation."
+				},
+				"deprecated": {
+					"type": "boolean",
+					"description": "Declares this operation to be deprecated. Consumers SHOULD refrain from usage of the declared operation. Default value is false."
+				},
+				"security": {
+					"type": "array",
+					"items": {
+						"$ref": "#/definitions/securityRequirement"
+					}
+				},
+				"servers": {
+					"$ref": "#/definitions/server"
+				}
+			},
+			"patternProperties": {
+				"^X-": {
+					"$ref": "#/definitions/vendorExtension"
+				}
+			},
+			"additionalProperties": false
+		},
+		"parameter": {
+			"type": "object",
+			"description": "Describes a single operation parameter.",
+			"required": [ "name", "in" ],
+			"properties": {
+				"name": {
+					"type": "string",
+					"description": ""
+				},
+				"in": {
+					"type": "string",
+					"enum": [ "query", "header", "path", "cookie" ],
+					"description": "The location of the parameter."
+				},
+				"description": {
+					"type": "string",
+					"description": "A brief description of the parameter. This could contain examples of use. CommonMark syntax can be used for rich text representation."
+				},
+				"required": {
+					"type": "boolean",
+					"description": "Determines whether this parameter is mandatory. If the parameter location is \"path\", this property is required and its value MUST be true. Otherwise, the property MAY be included and its default value is false.",
+					"default": "false"
+				},
+				"deprecated": {
+					"type": "boolean",
+					"description": "Specifies that a parameter is deprecated and SHOULD be transitioned out of usage."
+				},
+				"allowEmptyValue": {
+					"type": "boolean",
+					"description": "Sets the ability to pass empty-valued parameters. This is valid only for query parameters and allows sending a parameter with an empty value. Default value is false. If style is used, if behavior is n/a, the value of allowEmptyValue SHALL be ignored."
+				},
+				"schema": {
+					"anyOf": [
+						{ "$ref": "#/definitions/schema" },
+						{ "$ref": "#/definitions/reference" }
+					]
+				}
+			},
+			"patternProperties": {
+				"^X-": {
+					"$ref": "#/definitions/vendorExtension"
+				}
+			},
+			"additionalProperties": false
+		},
+		"reference": {
+			"type": "object",
+			"description": "A simple object to allow referencing other components in the specification, internally and externally",
+			"required": [ "$ref" ],
+			"properties": {
+				"$ref": {
+					"type": "string",
+					"description": "The reference string"
+				}
+			}
+		},
+		"responses": {
+			"type": "object",
+			"description": "A container for the expected responses of an operation. The container maps a HTTP response code to the expected response.",
+			"patternProperties": {
+				"^([0-9]{3})$|^(default)$": {
+					"$ref": "#/definitions/responseValue"
+				},
+				"^X-": {
+					"$ref": "#/definitions/vendorExtension"
+				}
+			},
+			"additionalProperties": false
+		},
+		"responseValue": {
+			"oneOf": [
+				{
+					"$ref": "#/definitions/response"
+				},
+				{
+					"$ref": "#/definitions/reference"
+				}
+			]
+		},
+		"response": {
+			"type": "object",
+			"description": "Describes a single response from an API Operation, including design-time, static links to operations based on the response.",
+			"required": [ "description" ],
+			"properties": {
+				"description": {
+					"type": "string",
+					"description": "A short description of the response. CommonMark syntax can be used for rich text representation."
+				},
+				"headers": {
+					"$ref": "#/definitions/headers"
+				},
+				"content": {
+					"$ref": "#/definitions/content"
+				},
+				"links": {
+					"$ref": "#/definitions/links"
+				}
+			},
+			"patternProperties": {
+				"^X-": {
+					"$ref": "#/definitions/vendorExtension"
+				}
+			},
+			"additionalProperties": false
+		},
+		"requestBody": {
+			"type": "object",
+			"required": [ "content" ],
+			"properties": {
+				"description": {
+					"type": "string",
+					"description": "A brief description of the request body. This could contain examples of use. CommonMark syntax can be used for rich text representation."
+				},
+				"content": {
+					"$ref": "#/definitions/content",
+					"description": "The content of the request body."
+				},
+				"required": {
+					"type": "boolean",
+					"description": "Determines if the request body is required in the request. Defaults to false.",
+					"default": "false"
+				}
+			},
+			"patternProperties": {
+				"^X-": {
+					"$ref": "#/definitions/vendorExtension"
+				}
+			},
+			"additionalProperties": false
+		},
+		"callbacks": {
+			"type": "object",
+			"description": "A map of possible out-of band callbacks related to the parent operation. Each value in the map is a Callback Object that describes a request that may be initiated by the API provider and the expected responses. The key value used to identify the callback object is an expression, evaluated at runtime, that identifies a URL to use for the callback operation.",
+			"patternProperties": {
+				".*": {
+					"anyOf": [
+						{ "$ref": "#/definitions/callback" },
+						{ "$ref": "#/definitions/reference" }
+					]
+				},
+				"^X-": {
+					"$ref": "#/definitions/vendorExtension"
+				}
+			},
+			"additionalProperties": false
+		},
+		"callback": {
+			"type": "object",
+			"description": "A map of possible out-of band callbacks related to the parent operation. Each value in the map is a Path Item Object that describes a set of requests that may be initiated by the API provider and the expected responses. The key value used to identify the callback object is an expression, evaluated at runtime, that identifies a URL to use for the callback operation.",
+			"patternProperties": {
+				".*": {
+					"$ref": "#/definitions/pathItem"
+				},
+				"^X-": {
+					"$ref": "#/definitions/vendorExtension"
+				}
+			},
+			"additionalProperties": false
+		},
+		"headers": {
+			"type": "object",
+			"patternProperties": {
+				".*": {
+					"anyOf": [
+						{ "$ref": "#/definitions/header" },
+						{ "$ref": "#/definitions/reference" }
+					]
+				}
+			},
+			"additionalProperties": false
+		},
+		"header": {
+			"type": "object",
+			"properties": {
+				"description": {
+					"type": "string",
+					"description": "A brief description of the parameter. This could contain examples of use. CommonMark syntax can be used for rich text representation."
+				},
+				"required": {
+					"type": "boolean",
+					"description": "Determines whether this parameter is mandatory. If the parameter location is \"path\", this property is required and its value MUST be true. Otherwise, the property MAY be included and its default value is false.",
+					"default": "false"
+				},
+				"deprecated": {
+					"type": "boolean",
+					"description": "Specifies that a parameter is deprecated and SHOULD be transitioned out of usage."
+				},
+				"allowEmptyValue": {
+					"type": "boolean",
+					"description": "Sets the ability to pass empty-valued parameters. This is valid only for query parameters and allows sending a parameter with an empty value. Default value is false. If style is used, if behavior is n/a, the value of allowEmptyValue SHALL be ignored."
+				}
+			},
+			"patternProperties": {
+				"^X-": {
+					"$ref": "#/definitions/vendorExtension"
+				}
+			},
+			"additionalProperties": false
+		},
+		"components": {
+			"type": "object",
+			"description": "Holds a set of reusable objects for different aspects of the OAS. All objects defined within the components object will have no effect on the API unless they are explicitly referenced from properties outside the components object.",
+			"patternProperties": {
+				"^[a-zA-Z0-9.\\-_]+$": {
+					"oneOf": [
+						{ "$ref": "#/definitions/definitions" },
+						{ "$ref": "#/definitions/responsesDefinitions" },
+						{ "$ref": "#/definitions/parametersDefinitions" },
+						{ "$ref": "#/definitions/requestBodyDefinitions" },
+						{ "$ref": "#/definitions/responseHeadersDefinitions" },
+						{ "$ref": "#/definitions/securityDefinitions" },
+						{ "$ref": "#/definitions/linkDefinitions" },
+						{ "$ref": "#/definitions/callbackDefinitions" }
+					]
+				}
+			},
+			"additionalProperties": false
+		},
+		"securityRequirement": {},
+		"tag": {
+			"type": "object",
+			"description": "Allows adding meta data to a single tag that is used by the Operation Object. It is not mandatory to have a Tag Object per tag used there.",
+			"required": [ "name" ],
+			"additionalProperties": false,
+			"patternProperties": {
+				"^X-": {
+					"$ref": "#/definitions/vendorExtension"
+				}
+			},
+			"properties": {
+				"name": {
+					"type": "string",
+					"description": "The name of the tag."
+				},
+				"description": {
+					"type": "string",
+					"description": "A short description for the tag. CommonMark syntax can be used for rich text representation."
+				},
+				"externalDocs": {
+					"$ref": "#/definitions/externalDocs"
+				}
+			}
+		},
+		"externalDocs": {
+			"type": "object",
+			"description": "Allows referencing an external resource for extended documentation.",
+			"required": [ "url" ],
+			"additionalProperties": false,
+			"patternProperties": {
+				"^X-": {
+					"$ref": "#/definitions/vendorExtension"
+				}
+			},
+			"properties": {
+				"description": {
+					"type": "string",
+					"description": "A short description of the target documentation. CommonMark syntax can be used for rich text representation."
+				},
+				"url": {
+					"type": "string",
+					"description": "The URL for the target documentation. Value MUST be in the format of a URL."
+				}
+			}
+		},
+		"serverVariables": {
+			"type": "object",
+			"description": "",
+			"patternProperties": {
+				"^X-": {
+					"$ref": "#/definitions/vendorExtension"
+				},
+				"": {
+					"$ref": "#/definitions/serverVariable"
+				}
+			},
+			"additionalProperties": false
+		},
+		"serverVariable": {
+			"type": "object",
+			"description": "An object representing a Host URL template",
+			"additionalProperties": false,
+			"required": [ "default" ],
+			"properties": {
+				"enums": {
+					"description": "An enumeration of primitive type values to be used if the substitution options are from a limited set.",
+					"type": "string"
+				},
+				"default": {
+					"description": "The default value to use for substitution if an alternate value is not specified, and will be sent if an alternative value is not supplied.",
+					"type": "string"
+				},
+				"description": {
+					"type": "string",
+					"description": "An optional description for the template parameter."
+				}
+			}
+		},
+		"content": {
+			"type": "object",
+			"description": "Describes a set of supported media types. A Content Object can be used in Request Body Object, Parameter Objects, Header Objects, and Response Objects.",
+			"patternProperties": {
+				".*": {
+
+				}
+			}
+		},
+		"definitions": {
+			"type": "object",
+			"additionalProperties": {
+				"$ref": "#/definitions/schema"
+			},
+			"description": "An object to hold schemas for data types that can be consumed and produced by operations. These data types can be primitives, arrays or models."
+		},
+		"schema": {
+			"type": "object",
+			"description": "A deterministic version of a JSON Schema object.",
+			"patternProperties": {
+				"^x-": {
+					"$ref": "#/definitions/vendorExtension"
+				}
+			},
+			"properties": {
+				"$ref": {
+					"type": "string"
+				},
+				"format": {
+					"type": "string"
+				},
+				"title": {
+					"$ref": "http://json-schema.org/draft-04/schema#/properties/title"
+				},
+				"description": {
+					"$ref": "http://json-schema.org/draft-04/schema#/properties/description"
+				},
+				"default": {
+					"$ref": "http://json-schema.org/draft-04/schema#/properties/default"
+				},
+				"multipleOf": {
+					"$ref": "http://json-schema.org/draft-04/schema#/properties/multipleOf"
+				},
+				"maximum": {
+					"$ref": "http://json-schema.org/draft-04/schema#/properties/maximum"
+				},
+				"exclusiveMaximum": {
+					"$ref": "http://json-schema.org/draft-04/schema#/properties/exclusiveMaximum"
+				},
+				"minimum": {
+					"$ref": "http://json-schema.org/draft-04/schema#/properties/minimum"
+				},
+				"exclusiveMinimum": {
+					"$ref": "http://json-schema.org/draft-04/schema#/properties/exclusiveMinimum"
+				},
+				"maxLength": {
+					"$ref": "http://json-schema.org/draft-04/schema#/definitions/positiveInteger"
+				},
+				"minLength": {
+					"$ref": "http://json-schema.org/draft-04/schema#/definitions/positiveIntegerDefault0"
+				},
+				"pattern": {
+					"$ref": "http://json-schema.org/draft-04/schema#/properties/pattern"
+				},
+				"maxItems": {
+					"$ref": "http://json-schema.org/draft-04/schema#/definitions/positiveInteger"
+				},
+				"minItems": {
+					"$ref": "http://json-schema.org/draft-04/schema#/definitions/positiveIntegerDefault0"
+				},
+				"uniqueItems": {
+					"$ref": "http://json-schema.org/draft-04/schema#/properties/uniqueItems"
+				},
+				"maxProperties": {
+					"$ref": "http://json-schema.org/draft-04/schema#/definitions/positiveInteger"
+				},
+				"minProperties": {
+					"$ref": "http://json-schema.org/draft-04/schema#/definitions/positiveIntegerDefault0"
+				},
+				"required": {
+					"$ref": "http://json-schema.org/draft-04/schema#/definitions/stringArray"
+				},
+				"enum": {
+					"$ref": "http://json-schema.org/draft-04/schema#/properties/enum"
+				},
+				"additionalProperties": {
+					"anyOf": [
+						{
+							"$ref": "#/definitions/schema"
+						},
+						{
+							"type": "boolean"
+						}
+					],
+					"default": {}
+				},
+				"type": {
+					"$ref": "http://json-schema.org/draft-04/schema#/properties/type"
+				},
+				"items": {
+					"anyOf": [
+						{
+							"$ref": "#/definitions/schema"
+						},
+						{
+							"type": "array",
+							"minItems": 1,
+							"items": {
+								"$ref": "#/definitions/schema"
+							}
+						}
+					],
+					"default": {}
+				},
+				"allOf": {
+					"type": "array",
+					"minItems": 1,
+					"items": {
+						"$ref": "#/definitions/schema"
+					}
+				},
+				"properties": {
+					"type": "object",
+					"additionalProperties": {
+						"$ref": "#/definitions/schema"
+					},
+					"default": {}
+				},
+				"discriminator": {
+					"type": "string"
+				},
+				"readOnly": {
+					"type": "boolean",
+					"default": false
+				},
+				"xml": {
+					"$ref": "#/definitions/xml"
+				},
+				"externalDocs": {
+					"$ref": "#/definitions/externalDocs"
+				},
+				"example": {}
+			},
+			"additionalProperties": false
+		}
+	}
+}
+

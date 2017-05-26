@@ -1,0 +1,136 @@
+{
+  "openapi": "3.0.0",
+  "$schema": "file:///home/fulup/Workspace/AGL-AppFW/unicens2rc-afb/etc/openapi-schema.json", 
+  "info": {
+    "description": "",
+    "title": "ucs2",
+    "version": "1.0",
+    "x-binding-c-generator": {
+      "api": "unicens",
+      "version": 2,
+      "prefix": "ucs2_",
+      "postfix": "",
+      "start": null ,
+      "onevent": null,
+      "init": null,
+      "scope": "static",
+      "private": true      
+    }
+  },
+  "servers": [
+    {
+      "url": "ws://{host}:{port}/api/monitor",
+      "description": "Unicens2 API.",
+      "variables": {
+        "host": {
+          "default": "localhost"
+        },
+        "port": {
+          "default": "1234"
+        }
+      },
+      "x-afb-events": [
+        {
+          "$ref": "#/components/schemas/afb-event"
+        }
+      ]
+    }
+  ],
+  "components": {
+    "schemas": {
+      "afb-reply": {
+        "$ref": "#/components/schemas/afb-reply-v1"
+      },
+      "afb-event": {
+        "$ref": "#/components/schemas/afb-event-v1"
+      },
+      "afb-reply-v1": {
+        "title": "Generic response.",
+        "type": "object",
+        "required": [ "jtype", "request" ],
+        "properties": {
+          "jtype": {
+            "type": "string",
+            "const": "afb-reply"
+          },
+          "request": {
+            "type": "object",
+            "required": [ "status" ],
+            "properties": {
+              "status": { "type": "string" },
+              "info": { "type": "string" },
+              "token": { "type": "string" },
+              "uuid": { "type": "string" },
+              "reqid": { "type": "string" }
+            }
+          },
+          "response": { "type": "object" }
+        }
+      },
+      "afb-event-v1": {
+        "type": "object",
+        "required": [ "jtype", "event" ],
+        "properties": {
+          "jtype": {
+            "type": "string",
+            "const": "afb-event"
+          },
+          "event": { "type": "string" },
+          "data": { "type": "object" }
+        }
+      }
+    },
+    "x-permissions": {
+        "config": {
+          "permission": "urn:AGL:permission:unicens:public:initialise"
+        },
+        "monitor": {
+          "permission": "urn:AGL:permission:unicens:public:monitor"
+        }
+    },
+    "responses": {
+            "200": {
+              "description": "A complex object array response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/afb-reply"
+                  }
+                }
+            }
+          }
+    }
+  },
+  "paths": {
+    "/initialise": {
+      "description": "Initialise Unicens2 lib from NetworkConfig.XML.",
+      "get": {
+        "x-permissions": {
+          "$ref": "#/components/x-permissions/config"
+        },
+        "parameters": [
+          {
+            "in": "query",
+            "name": "filename",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {"$ref": "#/components/responses/200"} 
+        }
+      }
+    },
+    "/monitor": {
+      "description": "Subscribe to Unicens2 Events.",
+      "get": {
+        "x-permissions": {
+          "$ref": "#/components/x-permissions/monitor"
+        },
+        "responses": {
+          "200": {"$ref": "#/components/responses/200"} 
+        }
+      }
+    }
+  }
+}

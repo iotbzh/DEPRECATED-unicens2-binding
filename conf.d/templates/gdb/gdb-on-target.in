@@ -1,0 +1,13 @@
+# gdb-remote.init file for IDE
+# Object: allow to use standard gdb to remote debug a target
+# Usage: remote-target-populate update script under ./build directory
+# Author: Fulup Ar Foll (IoT.bzh)
+# Reference: https://blog.flameeyes.eu/2010/02/remote-debugging-with-gdb-part-2-gdb/
+
+# Start gdbserver on target and connect through SSH link
+target remote | ssh @RSYNC_TARGET@ gdbserver - afb-daemon --port=@AFB_REMPORT@ --workdir=@RSYNC_PREFIX@/@PROJECT_NAME@ --roothttp=./htdocs --ldpath=./lib --verbose --token=@AFB_TOKEN@
+
+# Replace run by continue (gdb use 'run' when gdbserver wants 'continue')
+define run
+continue
+end
