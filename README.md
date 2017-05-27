@@ -60,21 +60,57 @@ AFB_daemon dependency on Standard Linux Distributions
 ```
 
 
-```
 # Compile binding
 
 ```
-source ~/.bashrc  # or any other file where your have place your compilation preferences
-mkdir build
-cd build
-cmake -DCMAKE_INSTALL_PREFIX=$INSTALL_PREFIX ..
-make
+    source ~/.bashrc  # or any other file where your have place your compilation preferences
+    mkdir build
+    cd build
+    cmake -DCMAKE_INSTALL_PREFIX=$INSTALL_PREFIX ..
+    make
 
-    afb-daemon --ldpaths=. --port=1234 --workdir=. --roothttp=./htdocs --token="" --verbose
+    afb-daemon --workdir=.. --ldpaths=build --port=1234  --roothttp=./htdocs --token="" --verbose
 
     speaker-test -twav -D hw:ep01 -c 2
     firefox http://localhost:1234
 ```
+
+# Local Source Debug with GDB
+
+Warning: technically AGL bindings are shared libraries loaded thought 'dlopen'. GDB supports source debug of dynamically
+loaded libraries, but user should be warn that the actual path to sharelib symbols is directly inherited from DLOPEN.
+As a result if you change your directory after binder start with --workdir=xxx then GDB will not find symbols anymore
+
+
+```
+    Examples:
+    
+    # WORK when running in direct
+    afb-daemon --workdir=.. --ldpaths=build --port=1234 --roothttp=./htdocs
+
+    # FAIL when using GDB with warning: Could not load shared library ....
+    gdb -args afb-daemon --workdir=.. --ldpaths=build --port=1234 --roothttp=./htdocs
+    ...
+    warning: Could not load shared library symbols for ./build/ucs2-afb/afb-ucs2.so.
+    Do you need "set solib-search-path" or "set sysroot"?
+    ...
+```
+
+To debug sharelib symbol path: start your binder under GDB. Then break your session after the binder has
+loaded its bindings. Finally use "info sharedlibrary" and check 'SymsRead'. If equal to 'No' then either you start GDB
+from the wrong relative directory, either you have to use 'set solib-search-path' to force the path.
+
+```
+    gdb -args afb-daemon --workdir=.. --ldpaths=build --port=1234 --roothttp=./htdocs
+    run
+        ...
+        NOTICE: API unicens added
+        NOTICE: Waiting port=1234 rootdir=.
+        NOTICE: Browser URL= http://localhost:1234
+    (hit Ctrl-C to break the execution)
+    info sharedlibrary afb-*
+```
+
 
 # Running an debugging on a target
 

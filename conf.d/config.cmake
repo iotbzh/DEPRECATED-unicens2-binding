@@ -50,8 +50,8 @@ set (PKG_REQUIRED_LIST
 )
 
 # LANG Specific compile flags set for all build types
-set(CMAKE_C_FLAGS "")
-set(CMAKE_CXX_FLAGS "")
+# set(CMAKE_C_FLAGS "")
+# set(CMAKE_CXX_FLAGS "")
 
 # Define CONTROL_CDEV_NAME should match MOST driver values
 # ---------------------------------------------------------

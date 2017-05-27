@@ -4,6 +4,9 @@
 # Author: Fulup Ar Foll (IoT.bzh)
 # Reference: https://blog.flameeyes.eu/2010/02/remote-debugging-with-gdb-part-2-gdb/
 
+# move to package dir to read binding symbols
+cd @CMAKE_CURRENT_BINARY_DIR@/@PROJECT_PKG_DIR@
+
 # Start gdbserver on target and connect through SSH link
 target remote | ssh @RSYNC_TARGET@ gdbserver - afb-daemon --port=@AFB_REMPORT@ --workdir=@RSYNC_PREFIX@/@PROJECT_NAME@ --roothttp=./htdocs --ldpath=./lib --verbose --token=@AFB_TOKEN@
 
