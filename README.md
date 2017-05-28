@@ -135,4 +135,6 @@ Note: remote-target-populate will
  - create a gdbinit file to transparently debug remotely in source code with gdb -x ./build/target/gdb-on-target-name.ini
  - to run and debug directly from your IDE just configure the run and debug properties with the corresponding filename
 
+Note that Netbeans impose to set debug directory to ./build/pkgout or it won't find binding symbols for source debugging
+
 
