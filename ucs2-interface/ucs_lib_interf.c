@@ -104,12 +104,12 @@ void UCSI_Init(UCSI_Data_t *my, void *pTag)
     my->uniInitData.rm.report_fptr = &OnUnicensRoutingResult;
     my->uniInitData.rm.xrm.most_port_status_fptr = &OnUnicensMostPortStatus;
     my->uniInitData.rm.debug_resource_status_fptr = &OnUnicensDebugXrmResources;
-    
+
     RB_Init(&my->rb, CMD_QUEUE_LEN, sizeof(UnicensCmdEntry_t), my->rbBuf);
 }
 
 bool UCSI_NewConfig(UCSI_Data_t *my, UcsXmlVal_t *ucsConfig) {
-    
+
     UnicensCmdEntry_t *e;
     assert(MAGIC == my->magic);
     if (my->initialized)
@@ -219,7 +219,7 @@ static bool EnqueueCommand(UCSI_Data_t *my, UnicensCmdEntry_t *cmd)
     {
         UCSI_CB_OnUserMessage(my->tag, "Could not enqueue command. Increase CMD_QUEUE_LEN define", 0);
         return false;
-    }         
+    }
     memcpy(e, cmd, sizeof(UnicensCmdEntry_t));
     RB_PopWritePtr(&my->rb);
     UCSI_CB_OnServiceRequired(my->tag);
@@ -277,7 +277,7 @@ static void RB_PopReadPtr(RB_t *rb)
 {
     assert(NULL != rb);
     assert(0 != rb->dataQueue);
-    
+
     rb->pRx += rb->sizeOfEntry;
     if (rb->pRx >= rb->dataQueue + ( rb->amountOfEntries * rb->sizeOfEntry))
     rb->pRx = rb->dataQueue;
@@ -432,7 +432,7 @@ static void OnUnicensDebugXrmResources(Ucs_Xrm_ResourceType_t resource_type,
     if (NULL == resource_ptr) return;
     char *msg = NULL;
     uint16_t adr = 0xFFFF;
-    if (endpoint_inst_ptr && endpoint_inst_ptr->node_obj_ptr && 
+    if (endpoint_inst_ptr && endpoint_inst_ptr->node_obj_ptr &&
             endpoint_inst_ptr->node_obj_ptr->signature_ptr)
         adr = endpoint_inst_ptr->node_obj_ptr->signature_ptr->node_address;
     switch (resource_infos)
@@ -600,7 +600,7 @@ static void OnUcsNsRun(Ucs_Rm_Node_t * node_ptr, Ucs_Ns_ResultCode_t result, voi
     UCSI_Data_t *my = (UCSI_Data_t *)ucs_user_ptr;
     assert(MAGIC == my->magic);
     UCSI_CB_OnUserMessage(my->tag, "OnUcsNsRun (%03X): script executed %s",
-        2, node_ptr->signature_ptr->node_address, 
+        2, node_ptr->signature_ptr->node_address,
         (UCS_NS_RES_SUCCESS == result ? "succeeded" : "false"));
 #endif
 }
@@ -614,7 +614,7 @@ static void OnUcsNsRun(Ucs_Rm_Node_t * node_ptr, Ucs_Ns_ResultCode_t result, voi
 #define TRACE_BUFFER_SZ 200
 void App_TraceError(void *ucs_user_ptr, const char module_str[], const char entry_str[], uint16_t vargs_cnt, ...)
 {
-    void *tag;
+    void *tag = NULL;
     UCSI_Data_t *my = (UCSI_Data_t *)ucs_user_ptr;
     if (my)
     {
@@ -630,7 +630,7 @@ void App_TraceError(void *ucs_user_ptr, const char module_str[], const char entr
 }
 void App_TraceInfo(void *ucs_user_ptr, const char module_str[], const char entry_str[], uint16_t vargs_cnt, ...)
 {
-    void *tag;
+    void *tag = NULL;
     UCSI_Data_t *my = (UCSI_Data_t *)ucs_user_ptr;
     if (my)
     {
