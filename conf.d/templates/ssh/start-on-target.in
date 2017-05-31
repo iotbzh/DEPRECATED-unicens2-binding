@@ -1,5 +1,5 @@
 #!/bin/sh
-# 
+#
 # File:   start-on-target.sh
 # Author: Fulup Ar Foll @ IoT.bzh
 # Object: Forward signal (SIGTERM) to remote process
@@ -13,7 +13,10 @@ export RSYNC_PREFIX=@RSYNC_PREFIX@/@PROJECT_NAME@
 export AFB_REMPORT=@AFB_REMPORT@
 export AFB_TOKEN=@AFB_TOKEN@
 
-exec ssh -o "StrictHostKeyChecking no" -tt $RSYNC_TARGET << EOF 
+exec ssh -F /dev/null -o PasswordAuthentication=no -o StrictHostKeyChecking=no \
+ -o UserKnownHostsFile=/dev/null -o LogLevel=quiet -o ConnectionAttempts=3 \
+ -o ConnectTimeout=10 -o ControlMaster=no -o ControlPath=none \
+-tt $RSYNC_TARGET << EOF
     afb-daemon --workdir=$RSYNC_PREFIX --port=$AFB_REMPORT --roothttp=./htdocs --ldpath=./lib --verbose --token=$AFB_TOKEN &
     PID_DAEMON=\$!
 
