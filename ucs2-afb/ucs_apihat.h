@@ -25,7 +25,7 @@
 
 #include <json-c/json.h>
 #include <afb/afb-binding.h>
-#include <afb/afb-service-itf.h>
+#include <afb/afb-service-v2.h>
 
 #include "ucs_interface.h"
 
