@@ -42,11 +42,11 @@ set (gcc_minimal_version 4.9)
 # PKG_CONFIG required packages
 # -----------------------------
 set (PKG_REQUIRED_LIST
-	libsystemd>=222
-        libmicrohttpd>=0.9.54
+	libsystemd
+	libmicrohttpd
 	afb-daemon
-        json-c
-        mxml
+	json-c
+	mxml
 )
 
 # LANG Specific compile flags set for all build types
