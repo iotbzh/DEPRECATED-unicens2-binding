@@ -211,7 +211,7 @@ static ParseResult_t ParseRoutes(UcsXmlVal_t *v, PrivateData_t *vp);
 
 UcsXmlVal_t *UcsXml_Parse(const char *xmlString)
 {
-    UcsXmlVal_t *v;
+    UcsXmlVal_t *v = NULL;
     ParseResult_t result = Parse_Success;
     mxml_node_t *tree = mxmlLoadString(NULL, xmlString, MXML_NO_CALLBACK);
     if (!tree)

@@ -1,0 +1,27 @@
+Priority: optional
+Maintainer: Ronan Le Martret <ronan.lemartret@iot.bzh>
+Source: unicens2-binding
+Build-Depends: debhelper (>= 5),
+ libmicrohttpd-dev ,
+ cmake,
+ libsystemd-dev,
+ libssl-dev,
+ gcc,
+ g++,
+ libjson-c-dev,
+ electric-fence,
+ uuid-dev,
+ libasound2-dev,
+ libgcrypt20-dev,
+ libmagic-dev,
+ libmxml-dev,
+ app-framework-binder-bin, 
+ app-framework-binder-dev
+Standards-Version: 3.8.2
+Homepage: https://github.com/iotbzh/unicens-agent
+
+Package: unicens2-binding
+Section: libs
+Architecture: any
+Depends: electric-fence
+Description: unicens2-binding

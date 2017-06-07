@@ -23,21 +23,30 @@ Release: 1
 License: Apache-V2
 Summary: Expose MicroChip UnicensV2 through AGL AppFw
 Url:     https://github.com/iotbzh/unicens-agent
+Source0: %{name}_%{version}.orig.tar.gz
 
-Provides: unicens-agent
 Prefix: /opt/unicens-agent
-BuildRequires: pkg-config , pkgconfig(libsystemd>=222), pkgconfig(libmicrohttpd>=0.9.54), pkgconfig(afb-daemon), pkgconfig(json-c), pkgconfig(mxml)
+BuildRequires: cmake
+BuildRequires: gcc gcc-c++
+BuildRequires: , pkgconfig(libsystemd), pkgconfig(libmicrohttpd), pkgconfig(afb-daemon), pkgconfig(json-c), pkgconfig(mxml)
 
-BuildRoot:/home/fulup/Workspace/AGL-AppFW/unicens2-binding/build
+BuildRoot:%{_tmppath}/%{name}-%{version}-build
 
 %description 
 Expose MicroChip UnicensV2 through AGL AppFw
 
 %prep
+%setup -q
 
 %build
-(mkdir -p build; cd build; cmake ..; make)
+%cmake -DBINDINGS_INSTALL_PREFIX:PATH=%{_libdir}
+%__make %{?_smp_mflags}
 
 %install
-(cd build; make populate DESTDIR=%{buildroot})
+[ -d build ] && cd build
+%make_install
 
+%files
+%defattr(-,root,root)
+%dir %{_prefix}/*
+%{_prefix}/*/*

@@ -17,23 +17,25 @@
 ###########################################################################
 
 
-Name:    @PROJECT_NAME@
-Version: @PROJECT_VERSION@
+Name:    unicens-agent
+Version: 0.1
 Release: 1
-License: @PROJECT_LICENCE@
-Summary: @PROJECT_DESCRIPTION@
-Url:     @PROJECT_URL@
+License: Apache-V2
+Summary: Expose MicroChip UnicensV2 through AGL AppFw
+Url:     https://github.com/iotbzh/unicens-agent
 Source0: %{name}_%{version}.orig.tar.gz
 
-Prefix: /opt/@PROJECT_NAME@
+Prefix: /opt/unicens-agent
 BuildRequires: cmake
 BuildRequires: gcc gcc-c++
-BuildRequires: @RPM_PKG_DEPS@
+BuildRequires: pkgconfig(libsystemd) >= 222,
+BuildRequires: pkgconfig(libmicrohttpd) >= 0.9.54
+BuildRequires: pkgconfig(afb-daemon), pkgconfig(json-c), pkgconfig(mxml)
 
 BuildRoot:%{_tmppath}/%{name}-%{version}-build
 
 %description 
-@PROJECT_DESCRIPTION@
+Expose MicroChip UnicensV2 through AGL AppFw
 
 %prep
 %setup -q
@@ -48,5 +50,5 @@ BuildRoot:%{_tmppath}/%{name}-%{version}-build
 
 %files
 %defattr(-,root,root)
-%dir %{_prefix}/*
-%{_prefix}/*/*
+%dir %{_libdir}/unicens-agent
+%{_libdir}/unicens-agent/afb-ucs2.so

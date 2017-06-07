@@ -207,11 +207,12 @@ macro(rpm_package_build)
         endforeach()
 
         # build rpm spec file from template
-        configure_file(${RPM_TEMPLATE_DIR}/rpm-config.spec.in ${SPEC_DIR}/rpm-${PROJECT_NAME}.spec)
+        configure_file(${RPM_TEMPLATE_DIR}/rpm-config.spec.in ${SPEC_DIR}/${PROJECT_NAME}.spec)
 
         add_custom_command(OUTPUT ${PROJECT_NAME}.rpm
                 DEPENDS ${PROJECT_TARGETS}
-                COMMAND rpmbuild -ba  ${SPEC_DIR}/rpm-${PROJECT_NAME}.spec
+                COMMAND git --git-dir=${CMAKE_CURRENT_SOURCE_DIR}/.git  archive --format=tar.gz --prefix=${PROJECT_NAME}-${PROJECT_VERSION}/ HEAD -o ${SPEC_DIR}/${PROJECT_NAME}_${PROJECT_VERSION}.orig.tar.gz
+                COMMAND rpmbuild --define=\"%_sourcedir ${SPEC_DIR}\" -ba ${SPEC_DIR}/${PROJECT_NAME}.spec
         )
 
         add_custom_target(rpm DEPENDS ${PROJECT_NAME}.rpm)
