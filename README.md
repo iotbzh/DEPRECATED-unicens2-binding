@@ -16,7 +16,7 @@ AFB_daemon dependency on Standard Linux Distributions
     libopenssl-devel libgcrypt-devel libgnutls-devel (optional but requested by libmicrohttpd for https)
 
     OpenSuse >=42.2 
-      zypper in gcc5 gdb gcc5-c++ git make ElectricFence systemd-devel libopenssl-devel  libuuid-devel alsa-devel libgcrypt-devel libgnutls-devel libjson-c-devel file-devel mxml-devel
+      zypper in gcc5 gdb gcc5-c++ git cmake make ElectricFence systemd-devel libopenssl-devel  libuuid-devel alsa-devel libgcrypt-devel libgnutls-devel libjson-c-devel file-devel mxml-devel
 
     Ubuntu >= 16.4 libuuid-devel
       apt-get install cmake git electric-fence libsystemd-dev libssl-dev uuid-dev libasound2-dev libgcrypt20-dev libgnutls-dev libgnutls-dev libjson-c-dev libmagic-dev  libmxml-dev
@@ -53,7 +53,7 @@ AFB_daemon dependency on Standard Linux Distributions
     git clone https://gerrit.automotivelinux.org/gerrit/src/app-framework-binder
 
     # Warning: previous GCC options should be set before initial cmake (clean Build/*)
-    cd app-framework-binder; mkdir build; cd build 
+    cd app-framework-binder; mkdir -p build; cd build
     cmake -DCMAKE_INSTALL_PREFIX=$INSTALL_PREFIX ..
     make
     make install 
@@ -64,7 +64,7 @@ AFB_daemon dependency on Standard Linux Distributions
 
 ```
     source ~/.bashrc  # or any other file where your have place your compilation preferences
-    mkdir build
+    mkdir -p build
     cd build
     cmake -DCMAKE_INSTALL_PREFIX=$INSTALL_PREFIX ..
     make

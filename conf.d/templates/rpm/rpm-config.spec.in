@@ -23,21 +23,30 @@ Release: 1
 License: @PROJECT_LICENCE@
 Summary: @PROJECT_DESCRIPTION@
 Url:     @PROJECT_URL@
+Source0: %{name}_%{version}.orig.tar.gz
 
-Provides: @PROJECT_NAME@
 Prefix: /opt/@PROJECT_NAME@
-BuildRequires: pkg-config @RPM_PKG_DEPS@
+BuildRequires: cmake
+BuildRequires: gcc gcc-c++
+BuildRequires: @RPM_PKG_DEPS@
 
-BuildRoot:@CMAKE_CURRENT_BINARY_DIR@
+BuildRoot:%{_tmppath}/%{name}-%{version}-build
 
 %description 
 @PROJECT_DESCRIPTION@
 
 %prep
+%setup -q
 
 %build
-(mkdir -p build; cd build; cmake ..; make)
+%cmake -DBINDINGS_INSTALL_PREFIX:PATH=%{_libdir}
+%__make %{?_smp_mflags}
 
 %install
-(cd build; make populate DESTDIR=%{buildroot})
+[ -d build ] && cd build
+%make_install
 
+%files
+%defattr(-,root,root)
+%dir %{_prefix}/*
+%{_prefix}/*/*
