@@ -16,10 +16,10 @@ AFB_daemon dependency on Standard Linux Distributions
     libopenssl-devel libgcrypt-devel libgnutls-devel (optional but requested by libmicrohttpd for https)
 
     OpenSuse >=42.2 
-      zypper in gcc5 gdb gcc5-c++ git make ElectricFence systemd-devel libopenssl-devel  libuuid-devel alsa-devel libgcrypt-devel libgnutls-devel libjson-c-devel file-devel 
+      zypper in gcc5 gdb gcc5-c++ git make ElectricFence systemd-devel libopenssl-devel  libuuid-devel alsa-devel libgcrypt-devel libgnutls-devel libjson-c-devel file-devel mxml-devel
 
     Ubuntu >= 16.4 libuuid-devel
-      apt-get install cmake git electric-fence libsystemd-dev libssl-dev uuid-dev libasound2-dev libgcrypt20-dev libgnutls-dev libgnutls-dev libjson-c-dev libmagic-dev
+      apt-get install cmake git electric-fence libsystemd-dev libssl-dev uuid-dev libasound2-dev libgcrypt20-dev libgnutls-dev libgnutls-dev libjson-c-dev libmagic-dev  libmxml-dev
 
     libmicrohttpd>=0.9.54 (as today OpenSuse-42.2 or Ubuntu-.16.4 ship older versions)
     afb-daemon from AGL Gerrit git clone https://gerrit.automotivelinux.org/gerrit/src/app-framework-binder
@@ -73,6 +73,15 @@ AFB_daemon dependency on Standard Linux Distributions
 
     speaker-test -twav -D hw:ep01 -c 2
     firefox http://localhost:1234
+```
+
+# Archive 
+
+```
+VERSION=0.1
+GIT_TAG=master
+PKG_NAME=unicens-agent
+git archive --format=tar.gz --prefix=${PKG_NAME}-${VERSION}/ ${GIT_TAG} -o ${PKG_NAME}_${VERSION}.orig.tar.gz
 ```
 
 # Local Source Debug with GDB
