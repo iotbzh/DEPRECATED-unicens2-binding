@@ -3,6 +3,8 @@ CMakeCache.txt
 Makefile
 *.so
 nbproject/private/
+nbproject/launcher.properties
 Install/
 .vscode
 .stfolder
+conf.d/packaging
