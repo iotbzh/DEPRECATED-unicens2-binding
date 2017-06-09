@@ -107,7 +107,7 @@ set(LD_LIBRARY_PATH ${CMAKE_INSTALL_PREFIX}/lib64 ${CMAKE_INSTALL_PREFIX}/lib)
 # - application/vnd.agl.qml.hybrid
 # - application/vnd.agl.html.hybrid
 #
-# set(WIDGET_TYPE MimeType)
+set(WIDGET_TYPE application/vnd.agl.service)
 
 # Optional force binding Linking flag
 # ------------------------------------
