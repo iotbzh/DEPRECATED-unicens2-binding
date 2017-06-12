@@ -1,1 +1,0 @@
-Unicens2 was release under BSD-3 license by Microchip on the 23-may-2017. Upstream version is now avaliable at https://github.com/MicrochipTech/unicens

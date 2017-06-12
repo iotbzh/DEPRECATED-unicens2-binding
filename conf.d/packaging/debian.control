@@ -1,0 +1,20 @@
+Priority: optional
+Maintainer: Fulup, Ar Foll <fulup@iot.bzh>
+Source: agl-unicens-agent
+Build-Depends: debhelper (>= 5),
+ pkg-config,
+ cmake,
+ gcc,
+ g++,
+ libmxml-dev ,
+ libjson-c-dev ,
+ libsystemd-dev  (>= 222),
+ agl-app-framework-binder-dev ,
+ libmicrohttpd-dev  (>= 0.9.55)
+Standards-Version: 3.8.2
+Homepage: https://github.com/iotbzh/unicens-agent
+
+Package: agl-unicens-agent
+Section: libs
+Architecture: any
+Description: Expose Microchip UNICENS v2 through AGL AppFw

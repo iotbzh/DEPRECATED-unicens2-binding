@@ -26,12 +26,12 @@ set(PROJECT_URL "https://github.com/iotbzh/unicens-agent")
 set(PROJECT_ICON "icon.png")
 set(PROJECT_AUTHOR "Fulup, Ar Foll")
 set(PROJECT_AUTHOR_MAIL "fulup@iot.bzh")
-set(PROJECT_LICENCE "Apache-V2")
+set(PROJECT_LICENSE "Apache-V2")
 set(PROJECT_LANGUAGES,"C")
 
 # Where are stored default templates files from submodule or subtree app-templates in your project tree
 # relative to the root project directory
-set(PROJECT_APP_TEMPLATES_DIR "conf.d/templates")
+set(PROJECT_APP_TEMPLATES_DIR "conf.d/app-templates")
 
 # Where are stored your external libraries for your project. This is 3rd party library that you don't maintain
 # but used and must be built and linked.
@@ -50,41 +50,43 @@ set(CMAKE_BUILD_TYPE "DEBUG")
 # Kernel selection if needed. Impose a minimal version.
 # NOTE FOR NOW IT CHECKS KERNEL Yocto SDK Kernel version
 # else only HOST VERSION
-# ------------------------------------------------------
+# -----------------------------------------------
 #set (kernel_minimal_version 4.8)
 
-# Compiler selection if needed. Overload the detected compiler.
+# Compiler selection if needed. Impose a minimal version.
 # -----------------------------------------------
 set (gcc_minimal_version 4.9)
-#set(CMAKE_C_COMPILER "gcc")
-#set(CMAKE_CXX_COMPILER "g++")
 
 # PKG_CONFIG required packages
 # -----------------------------
 set (PKG_REQUIRED_LIST
-	libsystemd
-	libmicrohttpd
-	afb-daemon
-	json-c
 	mxml
+	json-c
+	libsystemd>=222
+	afb-daemon
+	libmicrohttpd>=0.9.55
 )
 
-# LANG Specific compile flags set for all build types
-# set(CMAKE_C_FLAGS "")
-# set(CMAKE_CXX_FLAGS "")
-
+# Static constante definition
+# -----------------------------
+add_compile_options()
 # Define CONTROL_CDEV_NAME should match MOST driver values
 # ---------------------------------------------------------
-  add_compile_options(-DCONTROL_CDEV_TX="/dev/inic-usb-ctx")
-  add_compile_options(-DCONTROL_CDEV_RX="/dev/inic-usb-crx")
+add_compile_options(-DCONTROL_CDEV_TX="/dev/inic-usb-ctx")
+add_compile_options(-DCONTROL_CDEV_RX="/dev/inic-usb-crx")
+
+# LANG Specific compile flags set for all build types
+set(CMAKE_C_FLAGS "")
+set(CMAKE_CXX_FLAGS "")
 
 # Print a helper message when every thing is finished
 # ----------------------------------------------------
 set(CLOSING_MESSAGE "Test with: afb-daemon --ldpaths=. --port=1234 --workdir=.. --roothttp=./htdocs --tracereq=common --token='' --verbose")
+#set(PACKAGE_MESSAGE "Install widget file using in the target : afm-util install ${PROJECT_NAME}.wgt")
 
 # (BUG!!!) as PKG_CONFIG_PATH does not work [should be an env variable]
 # ---------------------------------------------------------------------
-set(INSTALL_PREFIX $ENV{HOME}/opt)
+set(CMAKE_INSTALL_PREFIX $ENV{HOME}/opt)
 set(CMAKE_PREFIX_PATH ${CMAKE_INSTALL_PREFIX}/lib64/pkgconfig ${CMAKE_INSTALL_PREFIX}/lib/pkgconfig)
 set(LD_LIBRARY_PATH ${CMAKE_INSTALL_PREFIX}/lib64 ${CMAKE_INSTALL_PREFIX}/lib)
 
