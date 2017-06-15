@@ -19,10 +19,3 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.3)
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/conf.d/config.cmake)
-include(${CMAKE_CURRENT_SOURCE_DIR}/conf.d/templates/cmake/common.cmake)
-
-project_subdirs_add("[^_]*")
-
-project_targets_populate()
-project_package_build()
-project_closing_msg()
