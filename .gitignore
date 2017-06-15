@@ -8,3 +8,4 @@ Install/
 .vscode
 .stfolder
 conf.d/packaging
+conf.d/*.env
