@@ -11,7 +11,7 @@
     <button id="connected" onclick="init()">Binder WS Fail</button></li>
     <br>
     <ol>
-    <li><button onclick="callbinder('unicens','initialise', {filename:'data/config.ucsx'})">Parse Config.ucsx</button></li>
+    <li><button onclick="callbinder('unicens','initialise', {filename:'data/ucs2_config/config.ucsx'})">Parse Config.ucsx</button></li>
     <li><button onclick="callbinder('unicens','setvol', {channel:'master', volume: 255})">Set Master Volume to 255</button></li>
     <li><button onclick="callbinder('unicens','setvol', {channel:'master', volume: 200})">Set Master Volume to 200</button></li>
     <li><button onclick="callbinder('unicens','setvol', [[0,200], [1,255]])">Set left=200 right=250</button></li>
