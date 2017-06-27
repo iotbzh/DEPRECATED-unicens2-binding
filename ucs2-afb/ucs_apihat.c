@@ -39,8 +39,8 @@ static const struct afb_verb_desc_v1 binding_verbs[] = {
   { .name= "initialise", .session= AFB_SESSION_NONE,  .callback= ucs2Init,      .info= "Parse XML & initialise Unicens " },
   { .name= "setvol"    , .session= AFB_SESSION_NONE,  .callback= ucs2SetVol,    .info= "Set Volume" },
  //  { .name= "monitor"   , .session= AFB_SESSION_NONE,  .callback= ucs2Monitor,   .info= "Subscribe to network error" },
- 
-  
+
+
   { .name= NULL } /* marker for end of the array */
 };
 
@@ -51,10 +51,10 @@ static const struct afb_binding binding_description = {
   /* description conforms to VERSION 1 */
   .type= AFB_BINDING_VERSION_1,
   .v1= {
-    .prefix= "unicens",
-    .info= "Unicens MOST Control API",
+    .prefix= "UNICENS",
+    .info= "UNICENS MOST Control API",
     .verbs = binding_verbs
-  } 
+  }
 };
 
 // this is call when after all bindings are loaded
@@ -68,7 +68,7 @@ static const struct afb_binding binding_description = {
  */
  const struct afb_binding *afbBindingV1Register(const struct afb_binding_interface *itf) {
     afbIface= itf;
-    
+
     return &binding_description;	/* returns the description of the binding */
 }
 

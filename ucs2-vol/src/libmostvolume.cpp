@@ -27,14 +27,14 @@
 
 static bool _running = false;
 
-extern "C" uint8_t lib_most_volume_init(Ucs_Inst_t *unicens_inst, lib_most_volume_service_cb_t req_service_fptr)
+extern "C" uint8_t lib_most_volume_init(Ucs_Inst_t *UNICENS_inst, lib_most_volume_service_cb_t req_service_fptr)
 {
     uint8_t success = 1U;
     /*std::cerr << "lib_most_volume_init(): called" << std::endl;*/
 
     if (!_running)
     {
-        CSetup::GetInstance()->Configure(unicens_inst, req_service_fptr);
+        CSetup::GetInstance()->Configure(UNICENS_inst, req_service_fptr);
         success = 0U;
         _running = true;
     }

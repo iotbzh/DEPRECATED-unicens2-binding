@@ -18,10 +18,10 @@
 
 # Project Info
 # ------------------
-set(PROJECT_NAME unicens-agent)
+set(PROJECT_NAME UNICENS-agent)
 set(PROJECT_VERSION "0.1")
 set(PROJECT_PRETTY_NAME "Unicens Agent")
-set(PROJECT_DESCRIPTION "Expose MicroChip UnicensV2 through AGL AppFw")
+set(PROJECT_DESCRIPTION "Expose Microchip UNICENS v2 through AGL AppFw")
 set(PROJECT_URL "https://github.com/iotbzh/unicens-agent")
 set(PROJECT_ICON "icon.png")
 set(PROJECT_AUTHOR "Fulup, Ar Foll")

@@ -1,0 +1,28 @@
+<html>
+<head>
+    <title>Hello world test</title>
+
+    <script type="text/javascript" src="AFB-websock.js"></script>
+    <script type="text/javascript" src="AudioBinding.js"></script>
+
+
+<body onload="init();">
+    <h1>Hello world test</h1>
+    <button id="connected" onclick="init()">Binder WS Fail</button></li>
+    <br>
+    <ol>
+    <li><button onclick="callbinder('UNICENS','initialise', {filename:'data/config.ucsx'})">Parse Config.ucsx</button></li>
+    <li><button onclick="callbinder('UNICENS','setvol', {channel:'master', volume: 255})">Set Master Volume to 255</button></li>
+    <li><button onclick="callbinder('UNICENS','setvol', {channel:'master', volume: 200})">Set Master Volume to 200</button></li>
+    <li><button onclick="callbinder('UNICENS','setvol', [[0,200], [1,255]])">Set left=200 right=250</button></li>
+    <li><button onclick="callbinder('UNICENS','setvol', [[0,255], [1,200]])">Set right=250 left=200</button></li>
+    <li><button onclick="callbinder('UNICENS','setvol', [[0,255], [1,255]])">Set right=255 left=255</button></li>
+    </ol>
+    <br>
+    <div id="main" style="visibility:hidden">
+    <ol>
+    <li>Question <div id="question"></div>
+    <li>Response <div id="output"></div>
+    <li>Events: <div id="outevt"></div>
+    </ol>
+    </div>

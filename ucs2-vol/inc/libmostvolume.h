@@ -29,7 +29,7 @@
 #ifdef	__cplusplus
 extern "C" {
 #endif
-    
+
 /** Describes the volume control */
 enum lib_most_volume_channel_t{
     LIB_MOST_VOLUME_CH_FRONT_LEFT   = 0,
@@ -45,18 +45,18 @@ enum lib_most_volume_channel_t{
   * \param timeout  Time in ms after which the application shall call lib_most_volume_service().
   *                 Valid values:
   *                 0x0000: as soon as possible,
-  *                 0x0001..0xFFFE: timeout in ms, 
+  *                 0x0001..0xFFFE: timeout in ms,
   *                 0xFFFF: never
   */
 typedef void (*lib_most_volume_service_cb_t)(uint16_t timeout);
 
 /** Initializes the library
-  * \param   unicens_inst       Reference to the UNICENS instance, created by the application.
-  * \param   req_service_fptr   Callback function which is fired if the application shall call 
+  * \param   UNICENS_inst       Reference to the UNICENS instance, created by the application.
+  * \param   req_service_fptr   Callback function which is fired if the application shall call
   *                             lib_most_volume_service.
-  * \return  '0' on success, otherwise value >'0'.  
+  * \return  '0' on success, otherwise value >'0'.
   */
-extern uint8_t lib_most_volume_init(Ucs_Inst_t *unicens_inst, lib_most_volume_service_cb_t req_service_fptr);
+extern uint8_t lib_most_volume_init(Ucs_Inst_t *UNICENS_inst, lib_most_volume_service_cb_t req_service_fptr);
 
 /** Terminates the library
   * \return  '0' on success, otherwise value >'0'.
@@ -70,10 +70,10 @@ extern uint8_t lib_most_volume_exit(void);
   */
 extern uint8_t lib_most_volume_set(enum lib_most_volume_channel_t channel, uint8_t volume);
 
-/** Shall be called either cyclically (e.g. 50ms -> polling) or after "timeout" 
+/** Shall be called either cyclically (e.g. 50ms -> polling) or after "timeout"
   * when "service_fptr" is fired (-> event triggered).
   * \return  '0' on success, otherwise value >'0'.
-  */ 
+  */
 extern uint8_t lib_most_volume_service(void);
 
 #ifdef	__cplusplus

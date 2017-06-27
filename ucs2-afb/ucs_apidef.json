@@ -1,12 +1,12 @@
 {
   "openapi": "3.0.0",
-  "$schema": "file:///home/fulup/Workspace/AGL-AppFW/unicens2rc-afb/etc/openapi-schema.json", 
+  "$schema": "file:///home/fulup/Workspace/AGL-AppFW/unicens2rc-afb/etc/openapi-schema.json",
   "info": {
     "description": "",
     "title": "ucs2",
     "version": "1.0",
     "x-binding-c-generator": {
-      "api": "unicens",
+      "api": "UNICENS",
       "version": 2,
       "prefix": "ucs2_",
       "postfix": "",
@@ -14,7 +14,7 @@
       "onevent": null,
       "init": null,
       "scope": "static",
-      "private": true      
+      "private": true
     }
   },
   "servers": [
@@ -82,10 +82,10 @@
     },
     "x-permissions": {
         "config": {
-          "permission": "urn:AGL:permission:unicens:public:initialise"
+          "permission": "urn:AGL:permission:UNICENS:public:initialise"
         },
         "monitor": {
-          "permission": "urn:AGL:permission:unicens:public:monitor"
+          "permission": "urn:AGL:permission:UNICENS:public:monitor"
         }
     },
     "responses": {
@@ -117,7 +117,7 @@
           }
         ],
         "responses": {
-          "200": {"$ref": "#/components/responses/200"} 
+          "200": {"$ref": "#/components/responses/200"}
         }
       }
     },
@@ -128,7 +128,7 @@
           "$ref": "#/components/x-permissions/monitor"
         },
         "responses": {
-          "200": {"$ref": "#/components/responses/200"} 
+          "200": {"$ref": "#/components/responses/200"}
         }
       }
     }

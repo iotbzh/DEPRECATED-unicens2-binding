@@ -120,14 +120,14 @@ var AFB_websocket;
 		switch (code) {
 		case RETOK:
 			reply(this.pendings, id, ans, 0);
-			break; 
+			break;
 		case RETERR:
 			reply(this.pendings, id, ans, 1);
-			break; 
+			break;
 		case EVENT:
 		default:
 			fire(this.awaitens, id, ans);
-			break; 
+			break;
 		}
 	}
 

@@ -28,9 +28,9 @@ CSetup* CSetup::_instance = NULL;
 // singleton
 CSetup* CSetup::GetInstance() {
     if (_instance == NULL) {
-        _instance = new CSetup();        
+        _instance = new CSetup();
     }
-    
+
     return _instance;
 }
 
@@ -53,7 +53,7 @@ CSetup::CSetup()
         _volume_amp_272_l(0x272U, DEVICE_VAL_LEFT, LIB_MOST_VOLUME_CH_CENTER),
         _volume_amp_272_r(0x272U, DEVICE_VAL_RIGHT, LIB_MOST_VOLUME_CH_SUB),
         _value_container()
-{    
+{
     static CDeviceValue* value_list[3] = {  &_volume_amp_270_m,
                                             &_volume_amp_270_l,
                                             &_volume_amp_270_r/*,
@@ -72,10 +72,10 @@ CSetup::~CSetup()
 
 }
 
-void CSetup::Configure(Ucs_Inst_t *unicens_inst, lib_most_volume_service_cb_t service_fptr)
+void CSetup::Configure(Ucs_Inst_t *UNICENS_inst, lib_most_volume_service_cb_t service_fptr)
 {
-    ucs_inst = unicens_inst;
-    _value_container.AssignService(service_fptr, unicens_inst);
+    ucs_inst = UNICENS_inst;
+    _value_container.AssignService(service_fptr, UNICENS_inst);
 }
 
 Ucs_Inst_t* CSetup::RetrieveUnicensInst(void)

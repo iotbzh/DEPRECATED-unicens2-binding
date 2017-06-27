@@ -32,8 +32,8 @@ ADD_LIBRARY(ucs2-vol STATIC callbacks.cpp device_container.cpp  device_value.cpp
     )
 
     # Define properties to expose when others use this target
-    TARGET_INCLUDE_DIRECTORIES(ucs2-vol 
-       PUBLIC 
+    TARGET_INCLUDE_DIRECTORIES(ucs2-vol
+       PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/../inc
         ${CMAKE_CURRENT_SOURCE_DIR}/../cfg
         ${CMAKE_CURRENT_SOURCE_DIR}/ucs-xml

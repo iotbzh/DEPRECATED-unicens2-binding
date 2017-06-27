@@ -34,7 +34,7 @@ static UCSI_channelsT ucsiChannels[] = {
     {.name= "CENTER"     , .numid= (int)LIB_MOST_VOLUME_CH_CENTER},
     {.name= "SUB"        , .numid= (int)LIB_MOST_VOLUME_CH_SUB},
     {.name= "MASTER"     , .numid= (int)LIB_MOST_VOLUME_MASTER},
-    
+
     {.name= NULL}
 };
 
@@ -46,13 +46,13 @@ void UCSI_Vol_Service (UCSI_Data_t *pPriv) {
 
 UCSI_channelsT *UCSI_Vol_Init (UCSI_Data_t *pPriv, UCSI_VolumeServiceCB_t serviceCB) {
     int err;
-    err = lib_most_volume_init(pPriv->unicens, (lib_most_volume_service_cb_t) serviceCB);
+    err = lib_most_volume_init(pPriv->UNICENS, (lib_most_volume_service_cb_t) serviceCB);
     if (err) return (NULL);
     else return (ucsiChannels);
 }
 
 uint8_t UCSI_Vol_Set(UCSI_Data_t *pPriv, int numid, uint8_t volume) {
-            
+
     return (lib_most_volume_set((enum lib_most_volume_channel_t)numid, volume));
 }
 

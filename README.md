@@ -7,7 +7,7 @@ AFB_daemon dependency on Standard Linux Distributions
 -------------------------------------------------------
     # handle dependencies > (OpenSuse-42.2, Fedora-25, Ubuntu 16.04.2LTS)
     gcc > 4.8
-    systemd-devel (libsystemd-dev>=222) 
+    systemd-devel (libsystemd-dev>=222)
     libuuid-devel
     file-devel(OpenSuSe) or libmagic-dev(Ubuntu)
     libjson-c-devel
@@ -15,7 +15,7 @@ AFB_daemon dependency on Standard Linux Distributions
     ElectricFence (BUG should not be mandatory)
     libopenssl-devel libgcrypt-devel libgnutls-devel (optional but requested by libmicrohttpd for https)
 
-    OpenSuse >=42.2 
+    OpenSuse >=42.2
       zypper in gcc5 gdb gcc5-c++ git cmake make ElectricFence systemd-devel libopenssl-devel  libuuid-devel alsa-devel libgcrypt-devel libgnutls-devel libjson-c-devel file-devel mxml-devel
 
     Ubuntu >= 16.4 libuuid-devel
@@ -29,7 +29,7 @@ AFB_daemon dependency on Standard Linux Distributions
     echo "#----------  AGL options Start ---------" >>~/.bashrc
     echo "# Object: AGL cmake option for  binder/bindings" >>~/.bashrc
     echo "# Date: `date`" >>~/.bashrc
-    echo 'export CC=gcc-5; export CXX=g++-5' >>~/.bashrc   # if using gcc5 
+    echo 'export CC=gcc-5; export CXX=g++-5' >>~/.bashrc   # if using gcc5
     echo 'export INSTALL_PREFIX=$HOME/opt' >>~/.bashrc
     echo 'export LD_LIBRARY_PATH=$INSTALL_PREFIX/lib64:$INSTALL_PREFIX/lib' >>~/.bashrc
     echo 'export LIBRARY_PATH=$INSTALL_PREFIX/lib64:$INSTALL_PREFIX/lib' >>~/.bashrc
@@ -56,7 +56,7 @@ AFB_daemon dependency on Standard Linux Distributions
     cd app-framework-binder; mkdir -p build; cd build
     cmake -DCMAKE_INSTALL_PREFIX=$INSTALL_PREFIX ..
     make
-    make install 
+    make install
 ```
 
 
@@ -75,12 +75,12 @@ AFB_daemon dependency on Standard Linux Distributions
     firefox http://localhost:1234
 ```
 
-# Archive 
+# Archive
 
 ```
 VERSION=0.1
 GIT_TAG=master
-PKG_NAME=unicens-agent
+PKG_NAME=UNICENS-agent
 git archive --format=tar.gz --prefix=${PKG_NAME}-${VERSION}/ ${GIT_TAG} -o ${PKG_NAME}_${VERSION}.orig.tar.gz
 ```
 
@@ -93,7 +93,7 @@ As a result if you change your directory after binder start with --workdir=xxx t
 
 ```
     Examples:
-    
+
     # WORK when running in direct
     afb-daemon --workdir=.. --ldpaths=build --port=1234 --roothttp=./htdocs
 
@@ -113,7 +113,7 @@ from the wrong relative directory, either you have to use 'set solib-search-path
     gdb -args afb-daemon --workdir=.. --ldpaths=build --port=1234 --roothttp=./htdocs
     run
         ...
-        NOTICE: API unicens added
+        NOTICE: API UNICENS added
         NOTICE: Waiting port=1234 rootdir=.
         NOTICE: Browser URL= http://localhost:1234
     (hit Ctrl-C to break the execution)

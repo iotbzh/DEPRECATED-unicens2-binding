@@ -28,13 +28,13 @@
 #include "libmostvolume.h"
 
 class CDeviceContainer {
-    
+
 public:
     CDeviceContainer();
     virtual ~CDeviceContainer();
-    
+
     void AssignService(lib_most_volume_service_cb_t service_fptr, Ucs_Inst_t *ucs_ptr) {_service_fptr = service_fptr; _ucs_inst_ptr = ucs_ptr;}
-    
+
     void RegisterValues(CDeviceValue** list_pptr, uint16_t list_sz);
     void SetValue(uint16_t key, uint8_t value);
     void ClearValues();

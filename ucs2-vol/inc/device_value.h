@@ -53,30 +53,30 @@ enum DeviceValueType {
     DEVICE_VAL_MASTER = 0,
     DEVICE_VAL_LEFT = 1,
     DEVICE_VAL_RIGHT = 2
-            
+
 };
 
 class CDeviceValue {
 public:
     CDeviceValue(uint16_t address, DeviceValueType type, uint16_t key);
     virtual ~CDeviceValue();
-    
+
     uint16_t GetKey(){return _key;}
     DeviceValueType GetType(){return _type;}        // returns the assigned type
     void SetValue(uint8_t value){_target_value = value;}   // sets desired value
-    
+
     bool RequiresUpdate();      // returns true if target is not actual value
                                 // returns true if success, false if failed
-                                // -> stop transmission 
+                                // -> stop transmission
     bool FireUpdateMessage(void);// fires message & updates actual value
-    
+
 private:
     void HandleI2cResult(Ucs_I2c_Result_t result);
     void ApplyMostValue(uint8_t value, DeviceValueType type, uint8_t tx_payload[]);
-    
+
     bool     _is_initial;       // ensure first update
     DeviceValueType _type;      // determines the remote i2c command
-    uint16_t _key;              // lookup key 
+    uint16_t _key;              // lookup key
     uint16_t _address;          // target node/group address
     uint8_t  _target_value;     // desired value
     uint8_t  _actual_value;     // value set and confirmed via network

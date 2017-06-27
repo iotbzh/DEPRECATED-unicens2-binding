@@ -33,37 +33,37 @@
 #define MAX_MASTERS     3u
 
 class CSetup {
-    
+
 public:
-    void Configure(Ucs_Inst_t *unicens_inst, lib_most_volume_service_cb_t service_fptr);
+    void Configure(Ucs_Inst_t *UNICENS_inst, lib_most_volume_service_cb_t service_fptr);
     Ucs_Inst_t *RetrieveUnicensInst(void);
     void SetVolume(enum lib_most_volume_channel_t channel, uint8_t volume);
-    void Update(); 
-    
-private:    
+    void Update();
+
+private:
     CDeviceValue _volume_amp_270_m;
     CDeviceValue _volume_amp_270_l;
     CDeviceValue _volume_amp_270_r;
-    
+
     CDeviceValue _volume_amp_271_m;
     CDeviceValue _volume_amp_271_l;
     CDeviceValue _volume_amp_271_r;
-    
+
     CDeviceValue _volume_amp_272_m;
     CDeviceValue _volume_amp_272_l;
     CDeviceValue _volume_amp_272_r;
 
     CDeviceContainer _value_container;
     Ucs_Inst_t *ucs_inst;
-        
+
 public:
     static CSetup* GetInstance();   // singleton
     static void Release();          // singleton
-    
+
 protected:
     CSetup();                       // singleton
     virtual ~CSetup();              // singleton
-    
+
 private:
     static CSetup* _instance;       // singleton
 };

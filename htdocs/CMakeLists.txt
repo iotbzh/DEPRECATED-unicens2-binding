@@ -25,9 +25,9 @@ PROJECT_TARGET_ADD(www_test)
 
     file(GLOB SOURCE_FILES "*.html" "*.js" "*.jpg")
 
-    add_custom_target(${TARGET_NAME} 
+    add_custom_target(${TARGET_NAME}
        DEPENDS  ${CMAKE_CURRENT_BINARY_DIR}/${TARGET_NAME}
-    ) 
+    )
 
     add_custom_command(
        DEPENDS  ${SOURCE_FILES}

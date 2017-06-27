@@ -69,8 +69,8 @@ void UCSI_Init(UCSI_Data_t *my, void *pTag)
     memset(my, 0, sizeof(UCSI_Data_t));
     my->magic = MAGIC;
     my->tag = pTag;
-    my->unicens = Ucs_CreateInstance();
-    if (NULL == my->unicens)
+    my->UNICENS = Ucs_CreateInstance();
+    if (NULL == my->UNICENS)
     {
         UCSI_CB_OnUserMessage(my->tag, "Can not instance a new version of UNICENS, "\
             "increase UCS_NUM_INSTANCES define", 0);
@@ -157,32 +157,32 @@ void UCSI_Service(UCSI_Data_t *my) {
     UnicensCmdEntry_t *e;
     bool popEntry = true; //Set to false in specific case, where function will callback asynchrony.
     assert(MAGIC == my->magic);
-    if (NULL != my->unicens && my->triggerService) {
+    if (NULL != my->UNICENS && my->triggerService) {
         my->triggerService = false;
-        Ucs_Service(my->unicens);
+        Ucs_Service(my->UNICENS);
     }
     if (NULL != my->currentCmd) return;
     my->currentCmd = e = (UnicensCmdEntry_t *)RB_GetReadPtr(&my->rb);
     if (NULL == e) return;
     switch (e->cmd) {
         case UnicensCmd_Init:
-            if (UCS_RET_SUCCESS == Ucs_Init(my->unicens, e->val.Init.init_ptr, OnUcsInitResult))
+            if (UCS_RET_SUCCESS == Ucs_Init(my->UNICENS, e->val.Init.init_ptr, OnUcsInitResult))
                 popEntry = false;
             else
                 UCSI_CB_OnUserMessage(my->tag, "Ucs_Init failed", 0);
             break;
         case UnicensCmd_Stop:
-            if (UCS_RET_SUCCESS == Ucs_Stop(my->unicens, OnUcsStopResult))
+            if (UCS_RET_SUCCESS == Ucs_Stop(my->UNICENS, OnUcsStopResult))
                 popEntry = false;
             else
                 UCSI_CB_OnUserMessage(my->tag, "Ucs_Stop failed", 0);
             break;
         case UnicensCmd_RmSetRoute:
-            if (UCS_RET_SUCCESS != Ucs_Rm_SetRouteActive(my->unicens, e->val.RmSetRoute.routePtr, e->val.RmSetRoute.isActive))
+            if (UCS_RET_SUCCESS != Ucs_Rm_SetRouteActive(my->UNICENS, e->val.RmSetRoute.routePtr, e->val.RmSetRoute.isActive))
                 UCSI_CB_OnUserMessage(my->tag, "Ucs_Rm_SetRouteActive failed", 0);
             break;
         case UnicensCmd_NsRun:
-            if (UCS_RET_SUCCESS != Ucs_Ns_Run(my->unicens, e->val.NsRun.node_ptr, OnUcsNsRun))
+            if (UCS_RET_SUCCESS != Ucs_Ns_Run(my->UNICENS, e->val.NsRun.node_ptr, OnUcsNsRun))
                 UCSI_CB_OnUserMessage(my->tag, "Ucs_Ns_Run failed", 0);
             break;
         default:
@@ -199,8 +199,8 @@ void UCSI_Service(UCSI_Data_t *my) {
 void UCSI_Timeout(UCSI_Data_t *my)
 {
     assert(MAGIC == my->magic);
-    if (NULL == my->unicens) return;
-    Ucs_ReportTimeout(my->unicens);
+    if (NULL == my->UNICENS) return;
+    Ucs_ReportTimeout(my->UNICENS);
 }
 
 /************************************************************************/

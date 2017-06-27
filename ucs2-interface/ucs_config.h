@@ -134,7 +134,7 @@ typedef struct
     bool initialized;
     RB_t rb;
     uint8_t rbBuf[(CMD_QUEUE_LEN * sizeof(UnicensCmdEntry_t))];
-    Ucs_Inst_t *unicens;
+    Ucs_Inst_t *UNICENS;
     Ucs_InitData_t uniInitData;
     bool triggerService;
     Ucs_Lld_Api_t *uniLld;
