@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------
-AGL-Unicens binding expose Unicens-V2 APIs through AGL framework
+AGL-UNICENS binding expose UNICENS-V2 APIs through AGL framework
 ------------------------------------------------------------------------
 
 
