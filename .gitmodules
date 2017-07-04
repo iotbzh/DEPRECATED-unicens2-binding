@@ -3,4 +3,4 @@
 	url = https://gerrit.automotivelinux.org/gerrit/p/apps/app-templates.git
 [submodule "ucs2-lib/unicens"]
 	path = ucs2-lib/unicens
-	url = https://github.com/iotbzh/unicens.git
+	url = https://github.com/MicrochipTech/unicens.git
