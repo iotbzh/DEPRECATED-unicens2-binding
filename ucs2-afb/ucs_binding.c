@@ -446,40 +446,42 @@ PUBLIC void ucs2Init (struct afb_req request) {
     sd_event_source *evtSource;
     int err;
 
-    // Read and parse XML file
+    /* Read and parse XML file */
     ucsConfig = ParseFile (request);
     if (NULL == ucsConfig) goto OnErrorExit;
 
-    // Fulup->Thorsten BUG InitializeCdevs should fail when control does not exit
-    if (!InitializeCdevs(&ucsContext))  {
-        afb_req_fail_f (request, "devnit-error", "Fail to initialise device [rx=%s tx=%s]", CONTROL_CDEV_RX, CONTROL_CDEV_TX);
-        goto OnErrorExit;
+    /* When ucsContextS is set, do not initalize UNICENS, CDEVs or system hooks, just load new XML */
+    if (!ucsContextS)
+    {
+        if (!ucsContextS && !InitializeCdevs(&ucsContext))  {
+            afb_req_fail_f (request, "devnit-error", "Fail to initialise device [rx=%s tx=%s]", CONTROL_CDEV_RX, CONTROL_CDEV_TX);
+            goto OnErrorExit;
+        }
+
+        /* Initialise UNICENS Config Data Structure */
+        UCSI_Init(&ucsContext.ucsiData, &ucsContext);
+
+        /* register aplayHandle file fd into binder mainloop */
+        err = sd_event_add_io(afb_daemon_get_event_loop(afbIface->daemon), &evtSource, ucsContext.rx.fileHandle, EPOLLIN, onReadCB, &ucsContext);
+        if (err < 0) {
+            afb_req_fail_f (request, "register-mainloop", "Cannot hook events to mainloop");
+            goto OnErrorExit;
+        }
+
+        /* init UNICENS Volume Library */
+        ucsContext.channels = UCSI_Vol_Init (&ucsContext.ucsiData, volumeCB);
+        if (!ucsContext.channels) {
+            afb_req_fail_f (request, "register-volume", "Could not enqueue new Unicens config");
+            goto OnErrorExit;
+        }
+        /* save this in a statical variable until ucs2vol move to C */
+        ucsContextS = &ucsContext;
     }
-
-    // Initialise Unicens Config Data Structure
-    UCSI_Init(&ucsContext.ucsiData, &ucsContext);
-
-    // Initialise Unicens with parsed config
+    /* Initialise UNICENS with parsed config */
     if (!UCSI_NewConfig(&ucsContext.ucsiData, ucsConfig))   {
-        afb_req_fail_f (request, "UNICENS-init", "Fail to initialize Unicens");
+        afb_req_fail_f (request, "UNICENS-init", "Fail to initialize UNICENS");
         goto OnErrorExit;
     }
-
-    // register aplayHandle file fd into binder mainloop
-    err = sd_event_add_io(afb_daemon_get_event_loop(afbIface->daemon), &evtSource, ucsContext.rx.fileHandle, EPOLLIN, onReadCB, &ucsContext);
-    if (err < 0) {
-        afb_req_fail_f (request, "register-mainloop", "Cannot hook events to mainloop");
-        goto OnErrorExit;
-    }
-
-    // init Unicens Volume Library
-    ucsContext.channels = UCSI_Vol_Init (&ucsContext.ucsiData, volumeCB);
-    if (!ucsContext.channels) {
-        afb_req_fail_f (request, "register-volume", "Could not enqueue new Unicens config");
-        goto OnErrorExit;
-    }
-    // save this in a statical variable until ucs2vol move to C
-    ucsContextS = &ucsContext;
 
     afb_req_success(request,NULL,"UNICENS-active");
 
