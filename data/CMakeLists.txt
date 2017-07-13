@@ -23,7 +23,7 @@
 ##################################################
 PROJECT_TARGET_ADD(ucs2_config)
 
-    file(GLOB SOURCE_FILES "*.ucsx")
+    file(GLOB SOURCE_FILES "*.xml")
 
     add_custom_target(${TARGET_NAME}
        DEPENDS  ${CMAKE_CURRENT_BINARY_DIR}/${TARGET_NAME}
