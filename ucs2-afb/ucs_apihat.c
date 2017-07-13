@@ -61,7 +61,7 @@ static const struct afb_binding binding_description = {
  int afbBindingV1ServiceInit(struct afb_service service) {
    afbSrv =  service;
    return (0);
-};
+}
 
 /*
  * activation function for registering the binding called by afb-daemon

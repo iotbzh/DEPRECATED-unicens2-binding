@@ -67,7 +67,7 @@ static ucsContextT *ucsContextS;
 PUBLIC void UcsXml_CB_OnError(const char format[], uint16_t vargsCnt, ...) {
     //DEBUG (afbIface, format, args);
     va_list args;
-    va_start (args, format);
+    va_start (args, vargsCnt);
     vfprintf (stderr, format, args);
     va_end(args);
 }
