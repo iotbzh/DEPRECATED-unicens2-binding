@@ -21,8 +21,8 @@
 
 #define _GNU_SOURCE
 
-#define BUFFER_FRAME_COUNT 10 // max frames in buffer
-#define WAIT_TIMER_US 1000000 // default waiting timer 1s
+#define BUFFER_FRAME_COUNT 10 /* max frames in buffer */
+#define WAIT_TIMER_US 1000000 /* default waiting timer 1s */
 
 #include <systemd/sd-event.h>
 #include <sys/types.h>
@@ -65,7 +65,7 @@ typedef struct {
 static ucsContextT *ucsContextS;
 
 PUBLIC void UcsXml_CB_OnError(const char format[], uint16_t vargsCnt, ...) {
-    //DEBUG (afbIface, format, args);
+    /*DEBUG (afbIface, format, args); */
     va_list args;
     va_start (args, vargsCnt);
     vfprintf (stderr, format, args);
@@ -95,23 +95,16 @@ STATIC int onTimerCB (sd_event_source* source,uint64_t timer, void* pTag) {
     return 0;
 }
 
-// UCS2 Interface Timer Callback
+/* UCS2 Interface Timer Callback */
 PUBLIC void UCSI_CB_OnSetServiceTimer(void *pTag, uint16_t timeout) {
   uint64_t usec;
-  // set a timer with  250ms accuracy
+  /* set a timer with  250ms accuracy */
   sd_event_now(afb_daemon_get_event_loop(afbIface->daemon), CLOCK_BOOTTIME, &usec);
   sd_event_add_time(afb_daemon_get_event_loop(afbIface->daemon), NULL, CLOCK_MONOTONIC, usec + (timeout*1000), 250, onTimerCB, pTag);
 
 }
 
-/**
- * \brief Callback when ever an Unicens forms a human readable message.
- *        This can be error events or when enabled also debug messages.
- * \note This function must be implemented by the integrator
- * \param pTag - Pointer given by the integrator by UCSI_Init
- * \param format - Zero terminated format string (following printf rules)
- * \param vargsCnt - Amount of parameters stored in "..."
- */
+/** Callback when ever UNICENS forms a human readable message. */
 void UCSI_CB_OnUserMessage(void *pTag, const char format[],
     uint16_t vargsCnt, ...) {
     //DEBUG (afbIface, format, args);
@@ -121,7 +114,7 @@ void UCSI_CB_OnUserMessage(void *pTag, const char format[],
     va_end(args);
 }
 
-// UCSI_Service cannot be call directly within Unicens context, need to reset stack through mainloop
+/** UCSI_Service cannot be called directly within UNICENS context, need to service stack through mainloop */
 STATIC int OnServiceRequiredCB (sd_event_source *source, uint64_t usec, void *pTag) {
     ucsContextT *ucsContext = (ucsContextT*) pTag;
 
@@ -130,10 +123,10 @@ STATIC int OnServiceRequiredCB (sd_event_source *source, uint64_t usec, void *pT
     return (0);
 }
 
-// UCS Callback fire when ever pTag instance needs to be serviced
+/* UCS Callback fire when ever UNICENS needs to be serviced */
 PUBLIC void UCSI_CB_OnServiceRequired(void *pTag) {
 
-   // push an asynchronous request for loopback to call UCSI_Service
+   /* push an asynchronous request for loopback to call UCSI_Service */
    sd_event_add_time(afb_daemon_get_event_loop(afbIface->daemon), NULL, CLOCK_MONOTONIC, 0, 0, OnServiceRequiredCB, pTag);
 }
 
@@ -154,8 +147,7 @@ PUBLIC void UCSI_CB_OnMostError(void *pTag, uint16_t sourceAddr,
 
 
 
-// Callback when ever this instance wants to send a message to INIC.
-// BUGS?? Sample was returning true/false on error when integration layer expect a void [question from Fulup to Thorsten]
+/* Callback when ever this UNICENS wants to send a message to INIC. */
 PUBLIC void UCSI_CB_SendMostMessage(void *pTag, const uint8_t *pData, uint32_t len) {
 
     ucsContextT *ucsContext = (ucsContextT*) pTag;
@@ -185,14 +177,14 @@ PUBLIC void UCSI_CB_SendMostMessage(void *pTag, const uint8_t *pData, uint32_t l
 }
 
 /**
- * \brief Callback when Unicens instance has been stopped.
+ * \brief Callback when UNICENS instance has been stopped.
  * \note This event can be used to free memory holding the resources
  *       passed with UCSI_NewConfig
  * \note This function must be implemented by the integrator
  * \param pTag - Pointer given by the integrator by UCSI_Init
  */
 void UCSI_CB_OnStop(void *pTag) {
-    NOTICE (afbIface, "Unicens stopped");
+    NOTICE (afbIface, "UNICENS stopped");
 
 }
 
@@ -224,7 +216,7 @@ bool Cdev_Init(CdevData_t *d, const char *fileName, bool read, bool write)
     else if (write)
         d->fileFlags = O_WRONLY | O_NONBLOCK;
 
-    // open file to enable event loop
+    /* open file to enable event loop */
     d->fileHandle = open(d->fileName, d->fileFlags);
     if (d->fileHandle  <= 0) goto OnErrorExit;
 
@@ -243,7 +235,7 @@ static bool InitializeCdevs(ucsContextT *ucsContext)
     return true;
 }
 
-// Callback fire when something is avaliable on MOST cdev
+/* Callback fire when something is avaliable on MOST cdev */
 int onReadCB (sd_event_source* src, int fileFd, uint32_t revents, void* pTag) {
     ucsContextT *ucsContext =( ucsContextT*) pTag;
     ssize_t len;
@@ -255,9 +247,9 @@ int onReadCB (sd_event_source* src, int fileFd, uint32_t revents, void* pTag) {
     ok= UCSI_ProcessRxData(&ucsContext->ucsiData, pBuffer, (uint16_t)len);
     if (!ok) {
         DEBUG (afbIface, "Buffer overrun (not handle)");
-        // Buffer overrun could replay pBuffer
+        /* Buffer overrun could replay pBuffer */
     }
-    return(0);
+    return 0;
 }
 
 STATIC UcsXmlVal_t* ParseFile(struct afb_req request) {
@@ -279,12 +271,12 @@ STATIC UcsXmlVal_t* ParseFile(struct afb_req request) {
         goto OnErrorExit;
     }
 
-    // read file into buffer as a \0 terminated string
+    /* read file into buffer as a \0 terminated string */
     fstat(fdHandle, &fdStat);
     xmlBuffer = (char*)alloca(fdStat.st_size + 1);
     readSize = read(fdHandle, xmlBuffer, fdStat.st_size);
     close(fdHandle);
-    xmlBuffer[readSize] = '\0'; //In any case, terminate it.
+    xmlBuffer[readSize] = '\0'; /* In any case, terminate it. */
 
     if (readSize != fdStat.st_size)  {
         afb_req_fail_f (request, "fileread-fail", "File to read fullfile '%s' size(%d!=%d)", filename, readSize, fdStat.st_size);
@@ -312,7 +304,7 @@ STATIC int volOnSvcCB (sd_event_source* source,uint64_t timer, void* pTag) {
     return 0;
 }
 
-// This callback is fire each time an volume event wait in the queue
+/* This callback is fire each time an volume event wait in the queue */
 void volumeCB (uint16_t timeout) {
     uint64_t usec;
     sd_event_now(afb_daemon_get_event_loop(afbIface->daemon), CLOCK_BOOTTIME, &usec);
@@ -381,10 +373,10 @@ STATIC int volSndCmd (struct afb_req request, struct json_object *commandJ, ucsC
     }
 
 
-    // Fulup what's append when channel or vol are invalid ???
+    /* Fulup what's append when channel or vol are invalid ??? */
     err = UCSI_Vol_Set  (&ucsContext->ucsiData, numid, (uint8_t) vol);
     if (err) {
-        // Fulup this might only be a warning (not sure about it)
+        /* Fulup this might only be a warning (not sure about it) */
         afb_req_fail_f (request, "vol-refused","command=%s vol was refused by UNICENS", json_object_get_string (volJ));
         goto OnErrorExit;
     }
@@ -400,7 +392,7 @@ PUBLIC void ucs2SetVol (struct afb_req request) {
     struct json_object *queryJ;
     int err;
 
-    // check UNICENS is initialised
+    /* check UNICENS is initialised */
     if (!ucsContextS) {
         afb_req_fail_f (request, "UNICENS-init","Should Load Config before using setvol");
         goto OnErrorExit;
@@ -446,7 +438,7 @@ PUBLIC void ucs2Init (struct afb_req request) {
     sd_event_source *evtSource;
     int err;
 
-    // Read and parse XML file
+    /* Read and parse XML file */
     ucsConfig = ParseFile (request);
     if (NULL == ucsConfig) goto OnErrorExit;
 
