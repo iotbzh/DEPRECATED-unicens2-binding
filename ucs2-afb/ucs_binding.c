@@ -154,7 +154,6 @@ PUBLIC void UCSI_CB_SendMostMessage(void *pTag, const uint8_t *pData, uint32_t l
     CdevData_t *cdevTx = &ucsContext->tx;
     uint32_t total = 0;
 
-
     if (NULL == pData || 0 == len) return;
 
     if (O_RDONLY == cdevTx->fileFlags) return;
@@ -167,13 +166,11 @@ PUBLIC void UCSI_CB_SendMostMessage(void *pTag, const uint8_t *pData, uint32_t l
         ssize_t written = write(cdevTx->fileHandle, &pData[total], (len - total));
         if (0 >= written)
         {
-            cdevTx->fileHandle = -1;
-            return;
+            /* Silently ignore write error (only occur in non-blocking mode) */
+            break;
         }
         total += (uint32_t) written;
     }
-
-    return;
 }
 
 /**
