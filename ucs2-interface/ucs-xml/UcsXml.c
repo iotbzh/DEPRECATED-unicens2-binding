@@ -1,85 +1,79 @@
-/*
- * Unicens XML Parser
- *
- * Copyright (C) 2017 Microchip Technology Germany II GmbH & Co. KG
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
- * You may also obtain this software under a propriety license from Microchip.
- * Please contact Microchip for further information.
- *
- */
+/*------------------------------------------------------------------------------------------------*/
+/* Unicens XML Parser                                                                             */
+/* Copyright 2017, Microchip Technology Inc. and its subsidiaries.                                */
+/*                                                                                                */
+/* Redistribution and use in source and binary forms, with or without                             */
+/* modification, are permitted provided that the following conditions are met:                    */
+/*                                                                                                */
+/* 1. Redistributions of source code must retain the above copyright notice, this                 */
+/*    list of conditions and the following disclaimer.                                            */
+/*                                                                                                */
+/* 2. Redistributions in binary form must reproduce the above copyright notice,                   */
+/*    this list of conditions and the following disclaimer in the documentation                   */
+/*    and/or other materials provided with the distribution.                                      */
+/*                                                                                                */
+/* 3. Neither the name of the copyright holder nor the names of its                               */
+/*    contributors may be used to endorse or promote products derived from                        */
+/*    this software without specific prior written permission.                                    */
+/*                                                                                                */
+/* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"                    */
+/* AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE                      */
+/* IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE                 */
+/* DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE                   */
+/* FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL                     */
+/* DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR                     */
+/* SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER                     */
+/* CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,                  */
+/* OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE                  */
+/* OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.                           */
+/*------------------------------------------------------------------------------------------------*/
 #include <assert.h>
 #include <string.h>
 #include "mxml.h"
+#include "UcsXml_Private.h"
 #include "UcsXml.h"
-
-/************************************************************************/
-/* USER ADJUSTABLE CONSTANTS                                            */
-/************************************************************************/
-
-#define MAX_JOB_LIST_LEN 6
 
 /************************************************************************/
 /* PRIVATE DECLARATIONS                                                 */
 /************************************************************************/
 
-#define COMPILETIME_CHECK(cond)  (void)sizeof(int[!!(cond) - 1])
+#define COMPILETIME_CHECK(cond)  (void)sizeof(int[2 * !!(cond) - 1])
+#define RETURN_ASSERT(result) { assert(false); return result; }
+#define MISC_HB(value)      ((uint8_t)((uint16_t)(value) >> 8))
+#define MISC_LB(value)      ((uint8_t)((uint16_t)(value) & (uint16_t)0xFF))
 
-struct UcsXmlObjectList
-{
-    void *obj;
-    struct UcsXmlObjectList *next;
-};
-
-struct UcsXmlRouteInfo
+struct UcsXmlRoute
 {
     bool isSource;
+    bool isActive;
+    uint16_t routeId;
     char routeName[32];
     Ucs_Rm_EndPoint_t *ep;
-    struct UcsXmlRouteInfo *next;
+    struct UcsXmlRoute *next;
 };
 
-struct UcsXmlScriptInfo
+struct UcsXmlScript
 {
     char scriptName[32];
     Ucs_Rm_Node_t *node;
-    struct UcsXmlScriptInfo *next;
+    struct UcsXmlScript *next;
+};
+
+struct UcsXmlJobList
+{
+    Ucs_Xrm_ResObject_t *job;
+    struct UcsXmlJobList *next; 
 };
 
 typedef enum
 {
-    SYNC_DATA        = 0,      /*!< \brief  Specifies the synchronous streaming data type */
-    CONTROL_DATA     = 2,      /*!< \brief  Specifies the control data type */
-    AV_PACKETIZED    = 3,      /*!< \brief  Specifies the A/V Packetized Isochronous 
-                                            streaming data type */
-    QOS_IP           = 4,      /*!< \brief  Specifies the Quality of Service IP 
-                                            streaming data type*/
-    DISC_FRAME_PHASE = 5,      /*!< \brief  Specifies the DiscreteFrame Isochronous
-                                            streaming phase data type */
-    IPC_PACKET       = 7,       /*!< \brief Specifies the IPC packet data type */
-    INVALID          = 0xFF     /*!< \brief Defined invalid value */
-} MData_t;
-
-typedef enum
-{
-    MPORT_MOST,
-    MPORT_USB,
-    MPORT_MLB,
-    MPORT_I2S,
-    MPORT_INVALID = 0xFF
-} MPort_t;
+    MSocket_MOST = 20,
+    MSocket_USB,
+    MSocket_MLB,
+    MSocket_STRM,
+    MSocket_SPLITTER,
+    MSocket_COMBINER
+} MSocketType_t;
 
 typedef enum
 {
@@ -88,122 +82,183 @@ typedef enum
     Parse_XmlError
 } ParseResult_t;
 
-typedef struct {
-    struct UcsXmlObjectList objList;
-    struct UcsXmlRouteInfo *pRtLst;
-    struct UcsXmlScriptInfo *pScrLst;
+typedef struct
+{
     Ucs_Rm_Node_t *nod;
+    bool usbPortAddedToJobList; /* USB Port must be added only ONCE to connection job lists */
+    Ucs_Xrm_UsbPort_t *usbPort;
+    bool mlbPortAddedToJobList; /* MLB Port must be added only ONCE to connection job lists */
+    Ucs_Xrm_MlbPort_t *mlbPort;
+    bool strmPortsAddedToJobList; /* STRM Ports must be added only ONCE to connection job lists */
+    Ucs_Xrm_StrmPort_t *strmPortA;
+    Ucs_Xrm_StrmPort_t *strmPortB;
+} NodeData_t;
+
+typedef struct
+{
+    MDataType_t dataType;
+    uint8_t sockCnt;
+    bool syncOffsetNeeded;
+    bool isDeactivated;
+    uint16_t routeId;
+    uint16_t syncOffset;
+    const char *routeName;
     Ucs_Xrm_ResObject_t *inSocket;
     Ucs_Xrm_ResObject_t *outSocket;
-    Ucs_Xrm_ResObject_t **jobList;
-    MData_t dataType;
-    uint16_t blockWidth;
-    const char* chName;
+    struct UcsXmlJobList *jobList;
+    Ucs_Xrm_Combiner_t *combiner;
+    mxml_node_t *pendingCombinerMostSockets;
+    Ucs_Sync_MuteMode_t muteMode;
+    Ucs_Avp_IsocPacketSize_t isocPacketSize;
+} ConnectionData_t;
+
+typedef struct
+{
     uint16_t pause;
+} ScriptData_t;
+
+typedef struct {
+    uint16_t autoRouteId;
+    struct UcsXmlObjectList objList;
+    struct UcsXmlRoute *pRtLst;
+    struct UcsXmlScript *pScrLst;
+    NodeData_t nodeData;
+    ConnectionData_t conData;
+    ScriptData_t scriptData;
 } PrivateData_t;
 
 /************************************************************************/
 /* Constants                                                            */
 /************************************************************************/
 
-//Key section
-static const char* UNICENS =                "unicens";
-static const char* ASYNC_BANDWIDTH =        "async_bandwidth";
-static const char* CHANNEL =                "channel";
-static const char* CHANNEL_NAME =           "channel_name";
-static const char* ADDRESS =                "channel_addr";
-static const char* BANDWIDTH =              "bandwidth";
-static const char* OFFSET =                 "offset";
-static const char* DATA_TYPE =              "data_type";
-static const char* DEVICE =                 "device";
-static const char* DEVICE_MLB_SPEED =       "mlb_port_speed";
-static const char* NODE_ADDR =              "node_address";
-static const char* DIR =                    "dir";
-static const char* I2S_PIN =                "i2s_pin";
-static const char* PACKETS_XACT =           "packets_per_xact";
-static const char* PORT =                   "port";
-static const char* SOCKET =                 "socket";
+/*Key section*/
+static const char* UNICENS =                "Unicens";
+static const char* PACKET_BW =              "AsyncBandwidth";
+static const char* NAME =                   "Name";
+static const char* ROUTE =                  "Route";
+static const char* ROUTE_ID =               "RouteId";
+static const char* ROUTE_IS_ACTIVE =        "IsActive";
+static const char* ENDPOINT_ADDRESS =       "EndpointAddress";
+static const char* CHANNEL_ADDRESS =        "ChannelAddress";
+static const char* BANDWIDTH =              "Bandwidth";
+static const char* BYTES_PER_FRAME =        "BytesPerFrame";
+static const char* OFFSET =                 "Offset";
+static const char* NODE =                   "Node";
+static const char* CLOCK_CONFIG =           "ClockConfig";
+static const char* ADDRESS =                "Address";
+static const char* FRAMES_PER_TRANSACTION = "FramesPerTransaction";
+static const char* MUTE_MODE =              "MuteMode";
+static const char* MUTE_MODE_NO_MUTING =    "NoMuting";
+static const char* MUTE_MODE_MUTE_SIGNAL =  "MuteSignal";
+static const char* AVP_PACKET_SIZE =        "IsocPacketSize";
+#define SYNC_CONNECTION                     "SyncConnection"
+#define AVP_CONNECTION                      "AVPConnection"
+#define DFP_CONNECTION                      "DFPhaseConnection"
+#define QOS_CONNECTION                      "QoSConnection"
+#define IPC_CONNECTION                      "IPCConnection"
 
-static const char* I2S_FS_SPEED =           "i2s_fs_speed";
-static const char* I2S_ALIGN =              "i2s_align";
+static const char* ALL_CONNECTIONS[] = { SYNC_CONNECTION, AVP_CONNECTION, 
+                        DFP_CONNECTION, QOS_CONNECTION, IPC_CONNECTION, NULL };
 
-//value section
-static const char* PORT_MOST =              "MOST";
-static const char* PORT_USB =               "USB";
-static const char* PORT_MLB =               "MLB";
-static const char* PORT_I2S =               "I2S";
+#define MOST_SOCKET                         "MOSTSocket"
+#define USB_SOCKET                          "USBSocket"
+#define MLB_SOCKET                          "MediaLBSocket"
+#define STREAM_SOCKET                       "StreamSocket"
+#define SPLITTER                            "Splitter"
+#define COMBINER                            "Combiner"
+static const char* ALL_SOCKETS[] = { MOST_SOCKET, USB_SOCKET, MLB_SOCKET, 
+                        STREAM_SOCKET, SPLITTER, COMBINER, NULL };
 
-static const char* DATATYPE_SYNC =          "SYNC";
-static const char* DATATYPE_AVP =           "AVP";
-static const char* DATATYPE_CTRL =          "CTRL";
-static const char* DATATYPE_QOS =           "QOS";
-static const char* DATATYPE_DFP =           "DFP";
-static const char* DATATYPE_IPC =           "IPC";
+#define MLB_PORT                            "MediaLBPort"
+#define USB_PORT                            "USBPort"
+#define STRM_PORT                           "StreamPort"
+static const char* ALL_PORTS[] = { MLB_PORT, USB_PORT, STRM_PORT };
 
-static const char* DIR_IN =                 "IN";
-static const char* DIR_OUT =                "OUT";
+static const char* PHYSICAL_LAYER =         "PhysicalLayer";
+static const char* DEVICE_INTERFACES =      "DeviceInterfaces";
+static const char* STRM_IN_COUNT =          "StreamingIfEpInCount";
+static const char* STRM_OUT_COUNT =         "StreamingIfEpOutCount";
 
-static const char* I2S_PIN_SRXA0 =          "SRXA0";
-static const char* I2S_PIN_SRXA1 =          "SRXA1";
-static const char* I2S_PIN_SRXB0 =          "SRXB0";
-static const char* I2S_PIN_SRXB1 =          "SRXB1";
+static const char* STRM_PIN =                "StreamPinID";
+static const char* STRM_ALIGN =              "DataAlignment";
 
-static const char* I2S_ALIGN_L16 =          "Left16";
-static const char* I2S_ALIGN_L24 =          "Left24";
-static const char* I2S_ALIGN_R16 =          "Right16";
-static const char* I2S_ALIGN_R24 =          "Right24";
-static const char* I2S_ALIGN_SEQUENTIAL =   "Seq";
+static const char* SCRIPT =                 "Script";
+static const char* FBLOCK_ID =              "FBlockId";
+static const char* FUNCTION_ID =            "FunctionId";
+static const char* OP_TYPE_REQUEST =        "OpTypeRequest";
+static const char* OP_TYPE_RESPONSE =       "OpTypeResponse";
+static const char* PAYLOAD_REQ_HEX =        "PayloadRequest";
+static const char* PAYLOAD_RES_HEX =        "PayloadResponse";
+static const char* PAUSE_MS =               "WaitTime";
+static const char* DEBOUNCE_TIME =          "DebounceTime";
+static const char* PIN_CONFIG =             "PinConfiguration";
+static const char* PIN_MASK =               "Mask";
+static const char* PIN_DATA =               "Data";
+static const char* I2C_SPEED =              "Speed";
+static const char* I2C_SPEED_SLOW =         "SlowMode";
+static const char* I2C_SPEED_FAST =         "FastMode";
+static const char* I2C_WRITE_MODE =         "Mode";
+static const char* I2C_WRITE_MODE_DEFAULT = "DefaultMode";
+static const char* I2C_WRITE_MODE_REPEAT =  "RepeatedStartMode";
+static const char* I2C_WRITE_MODE_BURST =   "BurstMode";
+static const char* I2C_WRITE_BLOCK_COUNT =  "BlockCount";
+static const char* I2C_SLAVE_ADDRESS =      "Address";
+static const char* I2C_PAYLOAD_LENGTH =     "Length";
+static const char* I2C_PAYLOAD =            "Payload";
+static const char* I2C_TIMEOUT =            "Timeout";
 
-static const char* SCRIPT =                 "script";
-static const char* ACTION =                 "action";
-static const char* NAME =                   "name";
-static const char* TYPE =                   "type";
-static const char* FBLOCK_ID =              "fblock_id";
-static const char* FUNCTION_ID =            "function_id";
-static const char* OP_TYPE_REQUEST =        "op_request";
-static const char* OP_TYPE_RESPONSE =       "op_response";
-static const char* PAYLOAD_REQ_HEX =        "load_req_hex";
-static const char* PAYLOAD_RES_HEX =        "load_res_hex";
-static const char* PAUSE_MS =               "pause_ms";
+#define SCRIPT_MSG_SEND                     "MsgSend"
+#define SCRIPT_PAUSE                        "Pause"
+#define SCRIPT_GPIO_PORT_CREATE             "GPIOPortCreate"
+#define SCRIPT_GPIO_PORT_PIN_MODE           "GPIOPortPinMode"
+#define SCRIPT_GPIO_PIN_STATE               "GPIOPinState"
+#define SCRIPT_I2C_PORT_CREATE              "I2CPortCreate"
+#define SCRIPT_I2C_PORT_WRITE               "I2CPortWrite"
+#define SCRIPT_I2C_PORT_READ                "I2CPortRead"
+static const char* ALL_SCRIPTS[] = { SCRIPT_MSG_SEND, SCRIPT_PAUSE, 
+    SCRIPT_GPIO_PORT_CREATE, SCRIPT_GPIO_PORT_PIN_MODE, SCRIPT_GPIO_PIN_STATE,
+    SCRIPT_I2C_PORT_CREATE, SCRIPT_I2C_PORT_WRITE, SCRIPT_I2C_PORT_READ, NULL };
 
-static const char* SEND_MSG =               "SEND_MSG";
-static const char* PAUSE =                  "PAUSE";
+static const char* VALUE_TRUE =             "true";
+static const char* VALUE_FALSE =            "false";
+static const char* VALUE_1 =                "1";
+static const char* VALUE_0 =                "0";
 
 /************************************************************************/
 /* Private Function Prototypes                                          */
 /************************************************************************/
 
-static void *MCalloc(struct UcsXmlObjectList *list, uint32_t nElem, uint32_t elemSize);
-static void FreeObjList(struct UcsXmlObjectList *cur);
-static void FreeVal(UcsXmlVal_t *v);
+static void FreeVal(UcsXmlVal_t *ucs);
 static bool GetElement(mxml_node_t *element, const char *name, bool goDeep, mxml_node_t **out, bool mandatory);
+static bool GetElementArray(mxml_node_t *element, const char *array[], const char **foundName, mxml_node_t **out);
 static bool GetCount(mxml_node_t *element, const char *name, uint32_t *out, bool mandatory);
+static bool GetCountArray(mxml_node_t *element, const char *array[], uint32_t *out, bool mandatory);
 static bool GetString(mxml_node_t *element, const char *key, const char **out, bool mandatory);
 static bool GetUInt16(mxml_node_t *element, const char *key, uint16_t *out, bool mandatory);
 static bool GetUInt8(mxml_node_t *element, const char *key, uint8_t *out, bool mandatory);
-static bool GetMlbSpeed(mxml_node_t *element, const char *key, Ucs_Mlb_ClockConfig_t *clock, bool mandatory);
-static bool GetI2SSpeed(mxml_node_t *element, const char *key, Ucs_Stream_PortClockConfig_t *clock, bool mandatory);
-static bool GetI2SPin(mxml_node_t *element, Ucs_Stream_PortPinId_t *pin, uint8_t *portIndex, bool mandatory);
-static bool GetI2SAlignment(mxml_node_t *element, Ucs_Stream_PortDataAlign_t *align, bool mandatory);
-static bool GetDirection(mxml_node_t *element, Ucs_SocketDirection_t *out);
-static bool GetDataType(mxml_node_t *element, MData_t *out);
-static bool GetPort(mxml_node_t *element, MPort_t *out);
-static bool GetPayload(mxml_node_t *element, const char *name, uint8_t **pPayload, uint8_t *len, 
+static bool GetSocketType(const char *txt, MSocketType_t *out);
+static bool GetPayload(mxml_node_t *element, const char *name, uint8_t **pPayload, uint8_t *len, uint8_t offset,
             struct UcsXmlObjectList *obj, bool mandatory);
-static bool AddJob(Ucs_Xrm_ResObject_t **joblist, Ucs_Xrm_ResObject_t *job);
-static void AddRoute(struct UcsXmlRouteInfo **pRtLst, struct UcsXmlRouteInfo *route);
-static void AddScript(struct UcsXmlScriptInfo **pScrLst, struct UcsXmlScriptInfo *script);
-static ParseResult_t ParseAll(mxml_node_t *tree, UcsXmlVal_t *v, PrivateData_t *vp);
-static ParseResult_t ParseDevice(mxml_node_t * dev, PrivateData_t *vp);
-static ParseResult_t ParseChannel(mxml_node_t * ch, PrivateData_t *vp);
-static ParseResult_t ParseSocket(mxml_node_t *soc, PrivateData_t *vp);
-static ParseResult_t ParseMostSoc(Ucs_Xrm_MostSocket_t *mostSoc, mxml_node_t *soc, PrivateData_t *vp);
-static ParseResult_t ParseUsbSoc(Ucs_Xrm_UsbSocket_t *usbSoc, mxml_node_t *soc, PrivateData_t *vp);
-static ParseResult_t ParseMlbSoc(Ucs_Xrm_MlbSocket_t *mlbSoc, mxml_node_t *soc, PrivateData_t *vp);
-static ParseResult_t ParseStreamSoc(Ucs_Xrm_StrmSocket_t *strmSoc, mxml_node_t *soc, PrivateData_t *vp);
-static ParseResult_t ParseScript(mxml_node_t *scr, PrivateData_t *vp);
-static ParseResult_t ParseScriptAction(mxml_node_t *act, Ucs_Rm_Node_t *n, uint32_t index, PrivateData_t *vp);
-static ParseResult_t ParseRoutes(UcsXmlVal_t *v, PrivateData_t *vp);
+static bool AddJob(struct UcsXmlJobList **joblist, Ucs_Xrm_ResObject_t *job, struct UcsXmlObjectList *objList);
+static Ucs_Xrm_ResObject_t **GetJobList(struct UcsXmlJobList *joblist, struct UcsXmlObjectList *objList);
+static struct UcsXmlJobList *DeepCopyJobList(struct UcsXmlJobList *jobsIn, struct UcsXmlObjectList *objList);
+static void AddRoute(struct UcsXmlRoute **pRtLst, struct UcsXmlRoute *route);
+static void AddScript(struct UcsXmlScript **pScrLst, struct UcsXmlScript *script);
+static ParseResult_t ParseAll(mxml_node_t *tree, UcsXmlVal_t *ucs, PrivateData_t *priv);
+static ParseResult_t ParseNode(mxml_node_t * node, PrivateData_t *priv);
+static ParseResult_t ParseConnection(mxml_node_t * node, const char *conType, PrivateData_t *priv);
+static ParseResult_t ParseSocket(mxml_node_t *soc, bool isSource, MSocketType_t socketType, struct UcsXmlJobList **jobList, PrivateData_t *priv);
+static ParseResult_t ParseScript(mxml_node_t *scr, PrivateData_t *priv);
+static bool FillScriptInitialValues(Ucs_Ns_Script_t *scr, PrivateData_t *priv);
+static ParseResult_t ParseScriptMsgSend(mxml_node_t *act, Ucs_Ns_Script_t *scr, PrivateData_t *priv);
+static ParseResult_t ParseScriptGpioPortCreate(mxml_node_t *act, Ucs_Ns_Script_t *scr, PrivateData_t *priv);
+static ParseResult_t ParseScriptGpioPinMode(mxml_node_t *act, Ucs_Ns_Script_t *scr, PrivateData_t *priv);
+static ParseResult_t ParseScriptGpioPinState(mxml_node_t *act, Ucs_Ns_Script_t *scr, PrivateData_t *priv);
+static ParseResult_t ParseScriptPortCreate(mxml_node_t *act, Ucs_Ns_Script_t *scr, PrivateData_t *priv);
+static ParseResult_t ParseScriptPortWrite(mxml_node_t *act, Ucs_Ns_Script_t *scr, PrivateData_t *priv);
+static ParseResult_t ParseScriptPortRead(mxml_node_t *act, Ucs_Ns_Script_t *scr, PrivateData_t *priv);
+static ParseResult_t ParseScriptPause(mxml_node_t *act, Ucs_Ns_Script_t *scr, PrivateData_t *priv);
+static ParseResult_t ParseRoutes(UcsXmlVal_t *ucs, PrivateData_t *priv);
 
 /************************************************************************/
 /* Public Functions                                                     */
@@ -211,52 +266,28 @@ static ParseResult_t ParseRoutes(UcsXmlVal_t *v, PrivateData_t *vp);
 
 UcsXmlVal_t *UcsXml_Parse(const char *xmlString)
 {
-    UcsXmlVal_t *v = NULL;
-    ParseResult_t result = Parse_Success;
-    mxml_node_t *tree = mxmlLoadString(NULL, xmlString, MXML_NO_CALLBACK);
-    if (!tree)
-    {
-        result = Parse_XmlError;
-    }
+    UcsXmlVal_t *val;
+    ParseResult_t result = Parse_MemoryError;
+    mxml_node_t *tree;
+    if (!(tree = mxmlLoadString(NULL, xmlString, MXML_NO_CALLBACK))) goto ERROR;
+    if (!GetElement(tree, UNICENS, true, &tree, true)) goto ERROR;
+    /*Do not use MCalloc for the root element*/
+    val = calloc(1, sizeof(UcsXmlVal_t));
+    if (!val) goto ERROR;
+    val->pInternal = calloc(1, sizeof(PrivateData_t));
+    if (!val->pInternal) goto ERROR;
+    result = ParseAll(tree, val, val->pInternal);
     if (Parse_Success == result)
-    {
-        if (!GetElement(tree, UNICENS, true, &tree, true))
-            result = Parse_XmlError;
-    }
-    if (Parse_Success == result)
-    {
-        //Do not use MCalloc for the root element
-        v = calloc(1, sizeof(UcsXmlVal_t));
-        if (NULL == v) result = Parse_MemoryError;
-    }
-    if (Parse_Success == result)
-    {
-        //Do not use MCalloc for the private data
-        v->pInternal = calloc(1, sizeof(PrivateData_t));
-        if (NULL == v->pInternal) result = Parse_MemoryError;
-    }
-    if (Parse_Success == result)
-    {
-        result = ParseAll(tree, v, v->pInternal);
-    }
-    if (!tree)
-    {
-        mxmlDelete(tree);
-    }
-    if (Parse_Success == result)
-    {
-        return v;
-    }
+        return val;
+ERROR:
     if (Parse_MemoryError == result)
-    {
         UcsXml_CB_OnError("XML error, aborting..", 0);
-    }
     else
-    {
-        UcsXml_CB_OnError("Alloc error, aborting..", 0);
-    }
-    assert(false);
-    FreeVal(v);
+        UcsXml_CB_OnError("Allocation error, aborting..", 0);
+    assert(false);    
+    if (!tree)
+        mxmlDelete(tree);
+    FreeVal(val);
     return NULL;
 }
 
@@ -269,59 +300,15 @@ void UcsXml_FreeVal(UcsXmlVal_t *val)
 /* Private Function Implementations                                     */
 /************************************************************************/
 
-static void *MCalloc(struct UcsXmlObjectList *list, uint32_t nElem, uint32_t elemSize)
+void FreeVal(UcsXmlVal_t *ucs)
 {
-    void *obj;
-    struct UcsXmlObjectList *tail = list;
-    if (NULL == list || 0 == nElem || 0 == elemSize) return NULL;
-    
-    obj = calloc(nElem, elemSize);
-    if (NULL == obj)
-    {
-        assert(false);
-        return NULL;
-    }
-    if (NULL == list->obj)
-    {
-        list->obj = obj;
-        return obj;
-    }
-    while(tail->next) tail = tail->next;
-    tail->next = calloc(1, sizeof(struct UcsXmlObjectList));
-    if (NULL == tail->next)
-    {
-        assert(false);
-        free(obj);
-        return NULL;
-    }
-    tail->next->obj = obj;
-    return obj;
-}
-
-static void FreeObjList(struct UcsXmlObjectList *cur)
-{
-    struct UcsXmlObjectList *root = cur;
-    while(cur)
-    {
-        struct UcsXmlObjectList *next = cur->next;
-        assert(NULL != cur->obj);
-        if (cur->obj)
-            free(cur->obj);
-        if (cur != root)
-            free(cur);
-        cur = next;
-    }
-}
-
-static void FreeVal(UcsXmlVal_t *v)
-{
-    PrivateData_t *vp;
-    if (NULL == v || NULL == v->pInternal)
+    PrivateData_t *priv;
+    if (NULL == ucs || NULL == ucs->pInternal)
         return;
-    vp = v->pInternal;
-    FreeObjList(&vp->objList);
-    free(v->pInternal);
-    free(v);
+    priv = ucs->pInternal;
+    FreeObjList(&priv->objList);
+    free(ucs->pInternal);
+    free(ucs);
 }
 
 static bool GetElement(mxml_node_t *element, const char *name, bool goDeep, mxml_node_t **out, bool mandatory)
@@ -348,6 +335,28 @@ static bool GetElement(mxml_node_t *element, const char *name, bool goDeep, mxml
     return false;
 }
 
+static bool GetElementArray(mxml_node_t *element, const char *array[], const char **foundName, mxml_node_t **out)
+{
+    mxml_node_t *n = element;
+    if (NULL == n || NULL == array || NULL == foundName || NULL == out) return false;
+    while ((n = n->next))
+    {
+        uint32_t i;
+        if (MXML_ELEMENT != n->type)
+            continue;
+        for (i = 0; NULL != array[i]; i++)
+        {
+            if (0 == strcmp(array[i], n->value.opaque))
+            {
+                *foundName = array[i];
+                *out = n;
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 static bool GetCount(mxml_node_t *element, const char *name, uint32_t *out, bool mandatory)
 {
     uint32_t cnt = 0;
@@ -370,9 +379,31 @@ static bool GetCount(mxml_node_t *element, const char *name, uint32_t *out, bool
     return true;
 }
 
+static bool GetCountArray(mxml_node_t *element, const char *array[], uint32_t *out, bool mandatory)
+{
+    const char *tmp;
+    uint32_t cnt = 0;
+    mxml_node_t *n;
+    if (NULL == element || NULL == array) return false;
+    n = element;
+    while(NULL != n)
+    {
+        if(!GetElementArray(n, array, &tmp, &n))
+            break;
+        ++cnt;
+    }
+    if (mandatory && 0 == cnt)
+    {
+        UcsXml_CB_OnError("element count is zero, searched with string array", 0);
+        return false;
+    }
+    *out = cnt;
+    return true;
+}
+
 static bool GetString(mxml_node_t *element, const char *key, const char **out, bool mandatory)
 {
-    uint32_t i;
+    int32_t i;
     if (NULL == element || NULL == key) return false;
     for (i = 0; i < element->value.element.num_attrs; i++)
     {
@@ -405,135 +436,18 @@ static bool GetUInt8(mxml_node_t *element, const char *key, uint8_t *out, bool m
     return true;
 }
 
-static bool GetMlbSpeed(mxml_node_t *element, const char *key, Ucs_Mlb_ClockConfig_t *clock, bool mandatory)
+static bool GetDataType(const char *txt, MDataType_t *out)
 {
-    uint16_t speed;
-    if (!GetUInt16(element, DEVICE_MLB_SPEED, &speed, false))
-        return false;
-    switch(speed)
-    {
-    case 256: *clock = UCS_MLB_CLK_CFG_256_FS; break;
-    case 512: *clock = UCS_MLB_CLK_CFG_512_FS; break;
-    case 1024: *clock = UCS_MLB_CLK_CFG_1024_FS; break;
-    case 2048: *clock = UCS_MLB_CLK_CFG_2048_FS; break;
-    case 3072: *clock = UCS_MLB_CLK_CFG_3072_FS; break;
-    case 4096: *clock = UCS_MLB_CLK_CFG_4096_FS; break;
-    case 6144: *clock = UCS_MLB_CLK_CFG_6144_FS; break;
-    case 8192: *clock = UCS_MLB_CLK_CFG_8192_FS; break;
-    case 0: *clock = UCS_MLB_CLK_CFG_WILDCARD; break;
-    default: 
-        UcsXml_CB_OnError("Invalid MLB clock val:'%d'", 1, clock);
-        return false;
-    }
-    return true;
-}
-
-static bool GetI2SSpeed(mxml_node_t *element, const char *key, Ucs_Stream_PortClockConfig_t *clock, bool mandatory)
-{
-    uint16_t speed;
-    if (!GetUInt16(element, I2S_FS_SPEED, &speed, false))
-        return false;
-    switch(speed)
-    {
-    case 8: *clock = UCS_STREAM_PORT_CLK_CFG_8FS; break;
-    case 16: *clock = UCS_STREAM_PORT_CLK_CFG_16FS; break;
-    case 32: *clock = UCS_STREAM_PORT_CLK_CFG_32FS; break;
-    case 64: *clock = UCS_STREAM_PORT_CLK_CFG_64FS; break;
-    case 128: *clock = UCS_STREAM_PORT_CLK_CFG_128FS; break;
-    case 256: *clock = UCS_STREAM_PORT_CLK_CFG_256FS; break;
-    case 512: *clock = UCS_STREAM_PORT_CLK_CFG_512FS; break;
-    case 0: *clock = UCS_MLB_CLK_CFG_WILDCARD; break;
-    default: 
-        UcsXml_CB_OnError("Invalid I2S clock val:'%d'", 1, clock);
-        return false;
-    }
-    return true;
-}
-
-static bool GetI2SPin(mxml_node_t *element, Ucs_Stream_PortPinId_t *pin, uint8_t *portIndex, bool mandatory)
-{
-    const char *txt;
-    if (!GetString(element, I2S_PIN, &txt, true))
-        return false;
-    if (0 == strcmp(I2S_PIN_SRXA0, txt))
-    {
-        *pin = UCS_STREAM_PORT_PIN_ID_SRXA0;
-        *portIndex = 0;
-        return true;
-    }
-    else if (0 == strcmp(I2S_PIN_SRXA1, txt))
-    {
-        *pin = UCS_STREAM_PORT_PIN_ID_SRXA1;
-        *portIndex = 0;
-        return true;
-    }
-    else if (0 == strcmp(I2S_PIN_SRXB0, txt))
-    {
-        *pin = UCS_STREAM_PORT_PIN_ID_SRXB0;
-        *portIndex = 1;
-        return true;
-    }
-    else if (0 == strcmp(I2S_PIN_SRXB1, txt))
-    {
-        *pin = UCS_STREAM_PORT_PIN_ID_SRXB1;
-        *portIndex = 1;
-        return true;
-    }
-    UcsXml_CB_OnError("Invalid I2S pin val:'%s'", 1, txt);
-    return false;
-}
-
-static bool GetI2SAlignment(mxml_node_t *element, Ucs_Stream_PortDataAlign_t *align, bool mandatory)
-{
-    const char *txt;
-    if (!GetString(element, I2S_ALIGN, &txt, true))
-        return false;
-    if (0 == strcmp(I2S_ALIGN_L16, txt))
-        *align = UCS_STREAM_PORT_ALGN_LEFT16BIT;
-    else if (0 == strcmp(I2S_ALIGN_L24, txt))
-        *align = UCS_STREAM_PORT_ALGN_LEFT24BIT;
-    else if (0 == strcmp(I2S_ALIGN_R16, txt))
-        *align = UCS_STREAM_PORT_ALGN_RIGHT16BIT;
-    else if (0 == strcmp(I2S_ALIGN_R24, txt))
-        *align = UCS_STREAM_PORT_ALGN_RIGHT24BIT;
-    else if (0 == strcmp(I2S_ALIGN_SEQUENTIAL, txt))
-        *align = UCS_STREAM_PORT_ALGN_SEQ;
-    else 
-    {
-        UcsXml_CB_OnError("Invalid I2S alignment:'%s'", 1, txt);
-        return false;
-    }
-    return true;
-}
-
-static bool GetDirection(mxml_node_t *element, Ucs_SocketDirection_t *out)
-{
-    const char *txt;
-    if (!GetString(element, DIR, &txt, true)) return false;
-    if (0 == strcmp(DIR_IN, txt))
-        *out = UCS_SOCKET_DIR_INPUT;
-    else if (0 == strcmp(DIR_OUT, txt))
-        *out = UCS_SOCKET_DIR_OUTPUT;
-    else 
-        return false;
-    return true;
-}
-
-static bool GetDataType(mxml_node_t *element, MData_t *out)
-{
-    const char *txt;
-    if (!GetString(element, DATA_TYPE, &txt, true)) return false;
-    if (0 == strcmp(DATATYPE_SYNC, txt)) {
+    if (NULL == txt || NULL == out) return false;
+    if (0 == strcmp(SYNC_CONNECTION, txt)) {
         *out = SYNC_DATA;
-    } else if (0 == strcmp(DATATYPE_CTRL, txt)) {
-        *out = CONTROL_DATA;
-    } else if (0 == strcmp(DATATYPE_AVP, txt)) {
+    } else if (0 == strcmp(AVP_CONNECTION, txt)) {
         *out = AV_PACKETIZED;
-    } else if (0 == strcmp(DATATYPE_QOS, txt)) {
+    } else if (0 == strcmp(QOS_CONNECTION, txt)) {
         *out = QOS_IP;
-    } else if (0 == strcmp(DATATYPE_DFP, txt)) {
+    } else if (0 == strcmp(DFP_CONNECTION, txt)) {
         *out = DISC_FRAME_PHASE;
-    } else if (0 == strcmp(DATATYPE_IPC, txt)) {
+    } else if (0 == strcmp(IPC_CONNECTION, txt)) {
         *out = IPC_PACKET;
     } else {
         UcsXml_CB_OnError("Unknown data type : '%s'", 1, txt);
@@ -542,18 +456,20 @@ static bool GetDataType(mxml_node_t *element, MData_t *out)
     return true;
 }
 
-static bool GetPort(mxml_node_t *element, MPort_t *out)
+static bool GetSocketType(const char *txt, MSocketType_t *out)
 {
-    const char *txt;
-    if (!GetString(element, PORT, &txt, true)) return false;
-    if (0 == strcmp(txt, PORT_MOST)) {
-            *out = MPORT_MOST;
-    } else if (0 == strcmp(txt, PORT_USB)) {
-        *out = MPORT_USB;
-    } else if (0 == strcmp(txt, PORT_MLB)) {
-        *out = MPORT_MLB;
-    } else if (0 == strcmp(txt, PORT_I2S)) {
-        *out = MPORT_I2S;
+    if (0 == strcmp(txt, MOST_SOCKET)) {
+            *out = MSocket_MOST;
+    } else if (0 == strcmp(txt, USB_SOCKET)) {
+        *out = MSocket_USB;
+    } else if (0 == strcmp(txt, MLB_SOCKET)) {
+        *out = MSocket_MLB;
+    } else if (0 == strcmp(txt, STREAM_SOCKET)) {
+        *out = MSocket_STRM;
+    } else if (0 == strcmp(txt, SPLITTER)) {
+        *out = MSocket_SPLITTER;
+    } else if (0 == strcmp(txt, COMBINER)) {
+        *out = MSocket_COMBINER;
     } else {
         UcsXml_CB_OnError("Unknown port : '%s'", 1, txt);
         return false;
@@ -561,7 +477,7 @@ static bool GetPort(mxml_node_t *element, MPort_t *out)
     return true;
 }
 
-static bool GetPayload(mxml_node_t *element, const char *name, uint8_t **pPayload, uint8_t *outLen, struct UcsXmlObjectList *obj, bool mandatory)
+static bool GetPayload(mxml_node_t *element, const char *name, uint8_t **pPayload, uint8_t *outLen, uint8_t offset, struct UcsXmlObjectList *obj, bool mandatory)
 {
     uint32_t tempLen, len = 0;
     uint8_t *p;
@@ -577,7 +493,7 @@ static bool GetPayload(mxml_node_t *element, const char *name, uint8_t **pPayloa
         return false;
     strncpy(txtCopy, txt, tempLen);
     tempLen = tempLen / 3; /* 2 chars hex value plus space (AA )  */
-    p = MCalloc(obj, tempLen, 1);
+    p = MCalloc(obj, offset + tempLen, 1);
     if (NULL == p)
     {
         free(txtCopy);
@@ -594,37 +510,93 @@ static bool GetPayload(mxml_node_t *element, const char *name, uint8_t **pPayloa
             assert(false);
             return 0;
         }
-        p[len++] = strtol( token, NULL, 16 );
+        p[offset + len++] = strtol( token, NULL, 16 );
         token = strtok_r( NULL, " ,.-", &tkPtr );
     }
     *outLen = len;
     return true;
 }
 
-static bool AddJob(Ucs_Xrm_ResObject_t **joblist, Ucs_Xrm_ResObject_t *job)
+static bool AddJob(struct UcsXmlJobList **joblist, Ucs_Xrm_ResObject_t *job, struct UcsXmlObjectList *objList)
 {
-    uint32_t i;
+    struct UcsXmlJobList *tail;
     if (NULL == joblist || NULL == job)
-    {
-        assert(false);
         return false;
-    }
-    for (i = 0; i < MAX_JOB_LIST_LEN; i++)
+    assert(UCS_XRM_RC_TYPE_QOS_CON >= *((Ucs_Xrm_ResourceType_t *)job));
+    if (NULL == joblist[0])
     {
-        if (NULL == joblist[i]) 
-        {
-            joblist[i] = job;
-            return true;
-        }
+        joblist[0] = MCalloc(objList, 1, sizeof(struct UcsXmlJobList));
+        if (NULL == joblist[0]) return false;;
+        joblist[0]->job = job;
+        return true;
     }
-    assert(false);
-    return false;
+    tail = joblist[0];
+    while(tail->next) tail = tail->next;
+    tail->next = MCalloc(objList, 1, sizeof(struct UcsXmlJobList));
+    if (NULL == tail->next) return false;
+    tail->next->job = job;
+    return true;
 }
 
-static void AddRoute(struct UcsXmlRouteInfo **pRtLst, struct UcsXmlRouteInfo *route)
+static Ucs_Xrm_ResObject_t **GetJobList(struct UcsXmlJobList *joblist, struct UcsXmlObjectList *objList)
 {
-    struct UcsXmlRouteInfo *tail;
-    if (NULL == pRtLst || NULL == route) return;
+    Ucs_Xrm_ResObject_t **outJob;
+    uint32_t count = 0;
+    struct UcsXmlJobList *tail;
+    if (NULL == joblist)
+        return false;
+    /*First: Get amount of stored jobs by enumerate all*/
+    tail = joblist;
+    while(tail)
+    {
+        ++count;
+        tail = tail->next;
+    }
+    if (0 == count)
+        return false;
+    /*Second: Allocate count+1 elements (NULL terminated) and copy pointers*/
+    outJob = MCalloc(objList, (count + 1), sizeof(Ucs_Xrm_ResObject_t *));
+    if (NULL == outJob)
+        return false;
+    tail = joblist;
+    count = 0;
+    while(tail)
+    {
+        outJob[count++] = tail->job;
+        tail = tail->next;
+    }
+    return outJob;
+}
+
+static struct UcsXmlJobList *DeepCopyJobList(struct UcsXmlJobList *jobsIn, struct UcsXmlObjectList *objList)
+{
+    struct UcsXmlJobList *jobsOut, *tail;
+    if (NULL == jobsIn || NULL == objList)
+        return NULL;
+    jobsOut = tail = MCalloc(objList, 1, sizeof(struct UcsXmlJobList));
+    if (NULL == jobsOut) { assert(false); return NULL; }
+    while(jobsIn)
+    {
+        tail->job = jobsIn->job;
+        if (jobsIn->next)
+        {
+            tail->next = MCalloc(objList, 1, sizeof(struct UcsXmlJobList));
+            if (NULL == tail->next) { assert(false); return NULL; }
+            tail = tail->next;
+        }
+        jobsIn = jobsIn->next;
+    }
+    return jobsOut;
+}
+
+static void AddRoute(struct UcsXmlRoute **pRtLst, struct UcsXmlRoute *route)
+{
+    struct UcsXmlRoute *tail;
+    if (NULL == pRtLst || NULL == route)
+    {
+        assert(false);
+        return;
+    }
     if (NULL == pRtLst[0])
     {
         pRtLst[0] = route;
@@ -635,10 +607,14 @@ static void AddRoute(struct UcsXmlRouteInfo **pRtLst, struct UcsXmlRouteInfo *ro
     tail->next = route;
 }
 
-static void AddScript(struct UcsXmlScriptInfo **pScrLst, struct UcsXmlScriptInfo *script)
+static void AddScript(struct UcsXmlScript **pScrLst, struct UcsXmlScript *script)
 {
-    struct UcsXmlScriptInfo *tail;
-    if (NULL == pScrLst || NULL == script) return;
+    struct UcsXmlScript *tail;
+    if (NULL == pScrLst || NULL == script)
+    {
+        assert(false);
+        return;
+    }
     if (NULL == pScrLst[0])
     {
         pScrLst[0] = script;
@@ -649,77 +625,75 @@ static void AddScript(struct UcsXmlScriptInfo **pScrLst, struct UcsXmlScriptInfo
     tail->next = script;
 }
 
-static ParseResult_t ParseAll(mxml_node_t *tree, UcsXmlVal_t *v, PrivateData_t *vp)
+static ParseResult_t ParseAll(mxml_node_t *tree, UcsXmlVal_t *ucs, PrivateData_t *priv)
 {
-    uint32_t devCount;
+    uint32_t nodeCount;
     mxml_node_t *sub;
     ParseResult_t result;
-    if (!GetCount(tree, DEVICE, &devCount, true))
-        return Parse_XmlError;
+    priv->autoRouteId = 0x8000;
+    if (!GetCount(tree, NODE, &nodeCount, true))
+        RETURN_ASSERT(Parse_XmlError);
     
-    v->pNod = MCalloc(&vp->objList, devCount, sizeof(Ucs_Rm_Node_t));
-    if (NULL == v->pNod) return Parse_MemoryError;
+    ucs->pNod = MCalloc(&priv->objList, nodeCount, sizeof(Ucs_Rm_Node_t));
+    if (NULL == ucs->pNod) RETURN_ASSERT(Parse_MemoryError);
 
-    if (!GetUInt16(tree, ASYNC_BANDWIDTH, &v->packetBw, true))
-        return Parse_XmlError;
+    if (!GetUInt16(tree, PACKET_BW, &ucs->packetBw, true))
+        RETURN_ASSERT(Parse_XmlError);
 
-    ///Iterate all devices
-    if (!GetElement(tree, DEVICE, true, &sub, true))
-        return Parse_XmlError;
+    /*Iterate all nodes*/
+    if (!GetElement(tree, NODE, true, &sub, true))
+        RETURN_ASSERT(Parse_XmlError);
     while(sub)
     {
-        mxml_node_t *ch;
-        vp->nod = &v->pNod[v->nodSize];
-        if (Parse_Success != (result = ParseDevice(sub, vp)))
+        const char *conType;
+        mxml_node_t *con;
+        memset(&priv->nodeData, 0, sizeof(NodeData_t));
+        priv->nodeData.nod = &ucs->pNod[ucs->nodSize];
+        if (Parse_Success != (result = ParseNode(sub, priv)))
             return result;
-        ///Iterate all channels. Device without any channel is also valid.
-        if (GetElement(sub->child, CHANNEL, false, &ch, false))
+        /*/Iterate all connections. Node without any connection is also valid.*/
+        if (!GetElementArray(sub->child, ALL_CONNECTIONS, &conType, &con))
+            continue;
+        while(con)
         {
-            while(ch)
+            const char *socTypeStr;
+            MSocketType_t socType;
+            mxml_node_t *soc;
+            memset(&priv->conData, 0, sizeof(ConnectionData_t));
+            if (Parse_Success != (result = ParseConnection(con, conType, priv)))
+                return result;
+            /*Iterate all sockets*/
+            if(!GetElementArray(con->child, ALL_SOCKETS, &socTypeStr, &soc)) RETURN_ASSERT(Parse_XmlError);
+            while(soc)
             {
-                mxml_node_t *soc;
-                uint8_t sockCnt = 0;
-                if (Parse_Success != (result = ParseChannel(ch, vp)))
+                if (!GetSocketType(socTypeStr, &socType)) RETURN_ASSERT(Parse_XmlError);
+                if (Parse_Success != (result = ParseSocket(soc, (0 == priv->conData.sockCnt), socType, &priv->conData.jobList, priv)))
                     return result;
-                ///Iterate all sockets
-                if(!GetElement(ch->child, SOCKET, false, &soc, true))
-                    return Parse_XmlError;
-                while(soc)
-                {
-                    ParseResult_t result;
-                    if (Parse_Success != (result = ParseSocket(soc, vp)))
-                        return result;
-                    ++sockCnt;
-                    if (!GetElement(soc, SOCKET, false, &soc, false))
-                        break;
-                }
-                if (2 != sockCnt)
-                {
-                    UcsXml_CB_OnError("%d sockets per channel found, must be 2", 1, sockCnt);
-                    return Parse_XmlError;
-                }
-                if (!GetElement(ch, CHANNEL, false, &ch, false))
+                ++priv->conData.sockCnt;
+                if(!GetElementArray(soc, ALL_SOCKETS, &socTypeStr, &soc))
                     break;
             }
+            if(!GetElementArray(con, ALL_CONNECTIONS, &conType, &con))
+                break;
         }
-        ++v->nodSize;
-        if (!GetElement(sub, DEVICE, false, &sub, false))
+        ++ucs->nodSize;
+        if (!GetElement(sub, NODE, false, &sub, false))
             break;
     }
 
-    ///Fill route structures
-    result = ParseRoutes(v, vp);
-    if (Parse_MemoryError == result) return Parse_MemoryError;
-    else if (Parse_XmlError == result) return Parse_XmlError;
+    /*Fill route structures*/
+    result = ParseRoutes(ucs, priv);
+    if (Parse_MemoryError == result) RETURN_ASSERT(Parse_MemoryError)
+    else if (Parse_XmlError == result) RETURN_ASSERT(Parse_XmlError);
     
-    ///Iterate all scripts. No scripts at all is allowed
+    /*Iterate all scripts. No scripts at all is allowed*/
     if(GetElement(tree, SCRIPT, true, &sub, false))
     {
         while(sub)
         {
-            ParseResult_t result = ParseScript(sub, vp);
-            if (Parse_MemoryError == result) return Parse_MemoryError;
-            else if (Parse_XmlError == result) return Parse_XmlError;
+            result = ParseScript(sub, priv);
+            if (Parse_MemoryError == result) RETURN_ASSERT(Parse_MemoryError)
+            else if (Parse_XmlError == result) RETURN_ASSERT(Parse_XmlError);
             if(!GetElement(sub, SCRIPT, false, &sub, false))
                 break;
         }
@@ -727,448 +701,811 @@ static ParseResult_t ParseAll(mxml_node_t *tree, UcsXmlVal_t *v, PrivateData_t *
     return result;
 }
 
-static ParseResult_t ParseDevice(mxml_node_t * dev, PrivateData_t *vp)
+static ParseResult_t ParseNode(mxml_node_t *node, PrivateData_t *priv)
 {
     const char *txt;
-    assert(NULL != dev && NULL != vp);
-    vp->nod->signature_ptr = MCalloc(&vp->objList, 1, sizeof(Ucs_Signature_t));
-    if(NULL == vp->nod->signature_ptr) return Parse_MemoryError;
-    if (!GetUInt16(dev, NODE_ADDR, &vp->nod->signature_ptr->node_address, true))
-        return Parse_XmlError;
-    if (GetString(dev, SCRIPT, &txt, false))
+    mxml_node_t *port;
+    Ucs_Signature_t *signature;
+    assert(NULL != node && NULL != priv);
+    priv->nodeData.nod->signature_ptr = MCalloc(&priv->objList, 1, sizeof(Ucs_Signature_t));
+    signature = priv->nodeData.nod->signature_ptr;
+    if(NULL == signature) RETURN_ASSERT(Parse_MemoryError);
+    if (!GetUInt16(node, ADDRESS, &signature->node_address, true))
+        RETURN_ASSERT(Parse_XmlError);
+    if (GetString(node, SCRIPT, &txt, false))
     {
-        struct UcsXmlScriptInfo *scr = MCalloc(&vp->objList, 1, sizeof(struct UcsXmlScriptInfo));
-        if (NULL == scr) return Parse_MemoryError;
-        scr->node = vp->nod;
+        struct UcsXmlScript *scr = MCalloc(&priv->objList, 1, sizeof(struct UcsXmlScript));
+        if (NULL == scr) RETURN_ASSERT(Parse_MemoryError);
+        scr->node = priv->nodeData.nod;
         strncpy(scr->scriptName, txt, sizeof(scr->scriptName));
-        AddScript(&vp->pScrLst, scr);
+        AddScript(&priv->pScrLst, scr);
+    }
+    /*Iterate all ports*/
+    if(GetElementArray(node->child, ALL_PORTS, &txt, &port))
+    {
+        while(port)
+        {
+            if (0 == (strcmp(txt, MLB_PORT)))
+            {
+                struct MlbPortParameters p;
+                p.list = &priv->objList;
+                if (!GetString(port, CLOCK_CONFIG, &p.clockConfig, true)) RETURN_ASSERT(Parse_XmlError);
+                if (!GetMlbPort(&priv->nodeData.mlbPort, &p)) RETURN_ASSERT(Parse_XmlError);
+            }
+            else if (0 == (strcmp(txt, USB_PORT)))
+            {
+                struct UsbPortParameters p;
+                p.list = &priv->objList;
+                if (!GetString(port, PHYSICAL_LAYER, &p.physicalLayer, true)) RETURN_ASSERT(Parse_XmlError);
+                if (!GetString(port, DEVICE_INTERFACES, &p.deviceInterfaces, true)) RETURN_ASSERT(Parse_XmlError);
+                if (!GetString(port, STRM_IN_COUNT, &p.streamInCount, true)) RETURN_ASSERT(Parse_XmlError);
+                if (!GetString(port, STRM_OUT_COUNT, &p.streamOutCount, true)) RETURN_ASSERT(Parse_XmlError);
+                if (!GetUsbPort(&priv->nodeData.usbPort, &p)) RETURN_ASSERT(Parse_XmlError);
+            }
+            else if (0 == (strcmp(txt, STRM_PORT)))
+            {
+                struct StrmPortParameters p;
+                p.list = &priv->objList;
+                p.index = 0;
+                if (!GetString(port, CLOCK_CONFIG, &p.clockConfig, true)) RETURN_ASSERT(Parse_XmlError);
+                if (!GetString(port, STRM_ALIGN, &p.dataAlignment, true)) RETURN_ASSERT(Parse_XmlError);
+                if (!GetStrmPort(&priv->nodeData.strmPortA, &p)) RETURN_ASSERT(Parse_XmlError);
+                p.index = 1;
+                if (!GetStrmPort(&priv->nodeData.strmPortB, &p)) RETURN_ASSERT(Parse_XmlError);
+            }
+            else
+            {
+                UcsXml_CB_OnError("Unknown Port:'%s'", 1, txt);
+                RETURN_ASSERT(Parse_XmlError);
+            }
+            if(!GetElementArray(port, ALL_SOCKETS, &txt, &port))
+                break;
+        }
     }
     return Parse_Success;;
 }
 
-static ParseResult_t ParseChannel(mxml_node_t *ch, PrivateData_t *vp)
-{
-    vp->inSocket = NULL;
-    vp->outSocket = NULL;
-    vp->jobList = NULL;
-    vp->dataType = 0xFF;
-    vp->blockWidth = 0;
-    vp->chName = NULL;
-    assert(NULL != ch && NULL != vp);
-    if (!GetString(ch, CHANNEL_NAME, &vp->chName, true))
-        return Parse_XmlError;
-    if (!GetDataType(ch, &vp->dataType))
-        return Parse_XmlError;
-    if (!GetUInt16(ch, BANDWIDTH, &vp->blockWidth, true))
-        return Parse_XmlError;
-    vp->jobList = MCalloc(&vp->objList, MAX_JOB_LIST_LEN, sizeof(Ucs_Xrm_ResObject_t *));
-    if (NULL == vp->jobList) return Parse_MemoryError;
+static ParseResult_t ParseConnection(mxml_node_t * node, const char *conType, PrivateData_t *priv)
+{   
+    assert(NULL != node && NULL != priv);
+    if (NULL == conType) RETURN_ASSERT(Parse_XmlError);
+    if (!GetDataType(conType, &priv->conData.dataType)) RETURN_ASSERT(Parse_XmlError);
+    switch (priv->conData.dataType)
+    {
+    case SYNC_DATA:
+    {
+        const char *txt;
+        if (GetString(node, MUTE_MODE, &txt, false))
+        {
+            if (0 == strcmp(txt, MUTE_MODE_NO_MUTING))
+                priv->conData.muteMode = UCS_SYNC_MUTE_MODE_NO_MUTING;
+            else if (0 == strcmp(txt, MUTE_MODE_MUTE_SIGNAL))
+                priv->conData.muteMode = UCS_SYNC_MUTE_MODE_MUTE_SIGNAL;
+            else
+            {
+                UcsXml_CB_OnError("ParseConnection: MuteMode='%s' not implemented", 1, txt);
+                RETURN_ASSERT(Parse_XmlError);
+            }
+        }
+        else
+        {
+            /*Be tolerant, this is an optional feature*/
+            priv->conData.muteMode = UCS_SYNC_MUTE_MODE_NO_MUTING;
+        }
+        break;
+    }
+    case AV_PACKETIZED:
+    {
+        uint16_t size;
+        if (GetUInt16(node, AVP_PACKET_SIZE, &size, false))
+        {
+            switch(size)
+            {
+            case 188:
+                priv->conData.isocPacketSize = UCS_ISOC_PCKT_SIZE_188;
+                break;
+            case 196:
+                priv->conData.isocPacketSize = UCS_ISOC_PCKT_SIZE_196;
+                break;
+            case 206:
+                priv->conData.isocPacketSize = UCS_ISOC_PCKT_SIZE_206;
+                break;
+            default:
+                UcsXml_CB_OnError("ParseConnection: %s='%d' not implemented", 2, AVP_PACKET_SIZE, size);
+                RETURN_ASSERT(Parse_XmlError);
+            }
+        }
+        else
+        {
+            /*Be tolerant, this is an optional feature*/
+            priv->conData.isocPacketSize = UCS_ISOC_PCKT_SIZE_188;
+        }
+        break;
+    }
+    default:
+        UcsXml_CB_OnError("ParseConnection: Datatype='%s' not implemented", 1, conType);
+        RETURN_ASSERT(Parse_XmlError);
+        break;
+    }
     return Parse_Success;
 }
 
-static ParseResult_t ParseSocket(mxml_node_t *soc, PrivateData_t *vp)
+static ParseResult_t ParseSocket(mxml_node_t *soc, bool isSource, MSocketType_t socketType, struct UcsXmlJobList **jobList, PrivateData_t *priv)
 {
-    MPort_t port;
-    bool isIn = false;
-    bool isSource = false;
-    uint16_t offset = 0;
-    assert(NULL != soc && NULL != vp);
-    Ucs_SocketDirection_t direction;
-    if (!GetDirection(soc, &direction))
-        return Parse_XmlError;
-    isIn = (UCS_SOCKET_DIR_INPUT == direction);
-    if (!GetPort(soc, &port))
-        return Parse_XmlError;
-    switch(port)
+    Ucs_Xrm_ResObject_t **targetSock;
+    assert(NULL != soc && NULL != priv);
+    targetSock = isSource ? &priv->conData.inSocket : &priv->conData.outSocket;
+    switch(socketType)
     {
-        case MPORT_MOST:
+    case MSocket_MOST:
+    {
+        const char* txt;
+        struct MostSocketParameters p;
+        /* If there is an combiner stored, add it now into job list (right before MOST socket) */
+        if (priv->conData.combiner)
+            if (!AddJob(jobList, priv->conData.combiner, &priv->objList)) RETURN_ASSERT(Parse_XmlError);
+        
+        p.list = &priv->objList;
+        p.isSource = isSource;
+        p.dataType = priv->conData.dataType;
+        if (!GetUInt16(soc, BANDWIDTH, &p.bandwidth, true)) RETURN_ASSERT(Parse_XmlError);
+        if (!GetString(soc, ROUTE, &priv->conData.routeName, true)) RETURN_ASSERT(Parse_XmlError);
+        if (GetString(soc, ROUTE_IS_ACTIVE, &txt, false))
         {
-            Ucs_Xrm_MostSocket_t *sock = MCalloc(&vp->objList, 1, sizeof(Ucs_Xrm_MostSocket_t));
-            if (NULL == sock) return Parse_MemoryError;
-            if (!AddJob(vp->jobList, sock)) return Parse_XmlError;
-            sock->data_type = vp->dataType;
-            sock->bandwidth = vp->blockWidth;
-            if (Parse_Success != ParseMostSoc(sock, soc, vp))
-                return Parse_XmlError;
-            isSource = (UCS_SOCKET_DIR_OUTPUT == direction);
-            if (isIn) vp->inSocket = sock; else vp->outSocket = sock;
-            break;
+            if (0 == strcmp(txt, VALUE_TRUE) || 0 == strcmp(txt, VALUE_1))
+                priv->conData.isDeactivated = false;
+            else if (0 == strcmp(txt, VALUE_FALSE) || 0 == strcmp(txt, VALUE_0))
+                priv->conData.isDeactivated = true;
+            else RETURN_ASSERT(Parse_XmlError);
+        } else {
+            priv->conData.isDeactivated = false;
         }
-        case MPORT_USB:
+        if (!GetUInt16(soc, ROUTE_ID, &priv->conData.routeId, false))
+            priv->conData.routeId = ++priv->autoRouteId;
+        if (priv->conData.syncOffsetNeeded)
         {
-            Ucs_Xrm_UsbSocket_t *sock = MCalloc(&vp->objList, 1, sizeof(Ucs_Xrm_UsbSocket_t));
-            if (NULL == sock) return Parse_MemoryError;
-            if (!AddJob(vp->jobList, sock)) return Parse_XmlError;
-            sock->data_type = vp->dataType;
-            if (Parse_Success != ParseUsbSoc(sock, soc, vp))
-                return Parse_XmlError;
-            if (isIn) vp->inSocket = sock; else vp->outSocket = sock;
-            break;
+            if (!GetUInt16(soc, OFFSET, &priv->conData.syncOffset, true)) RETURN_ASSERT(Parse_XmlError);
         }
-        case MPORT_MLB:
-        {
-            Ucs_Xrm_MlbSocket_t *sock = MCalloc(&vp->objList, 1, sizeof(Ucs_Xrm_MlbSocket_t));
-            if (NULL == sock) return Parse_MemoryError;
-            if (!AddJob(vp->jobList, sock)) return Parse_XmlError;
-            sock->data_type = vp->dataType;
-            sock->bandwidth = vp->blockWidth;
-            if (Parse_Success != ParseMlbSoc(sock, soc, vp))
-                return Parse_XmlError;
-            if (isIn) vp->inSocket = sock; else vp->outSocket = sock;
-            break;
-        }
-        case MPORT_I2S:
-        {
-            Ucs_Xrm_StrmSocket_t *sock = MCalloc(&vp->objList, 1, sizeof(Ucs_Xrm_StrmSocket_t));
-            if (NULL == sock) return Parse_MemoryError;
-            sock->data_type = vp->dataType;
-            sock->bandwidth = vp->blockWidth;
-            if (Parse_Success != ParseStreamSoc(sock, soc, vp))
-                return Parse_XmlError;
-            if (isIn) vp->inSocket = sock; else vp->outSocket = sock;
-            break;
-        }
-        default:
-            assert(false);
-            return Parse_XmlError;
+        if (!GetMostSocket((Ucs_Xrm_MostSocket_t **)targetSock, &p)) RETURN_ASSERT(Parse_XmlError);
+        if (!AddJob(jobList, *targetSock, &priv->objList)) RETURN_ASSERT(Parse_XmlError);
+        break;
     }
-    if (GetUInt16(soc, OFFSET, &offset, false))
+    case MSocket_USB:
     {
-        //TODO: If offset is non zero allocate Splitter / Combiner
-    }
-    //Connect in and out socket once they are created
-    if (vp->inSocket && vp->outSocket)
-    {
-        switch(vp->dataType)
+        struct UsbSocketParameters p;
+        p.list = &priv->objList;
+        p.isSource = isSource;
+        p.dataType = priv->conData.dataType;
+        if (priv->nodeData.usbPort)
         {
-        case AV_PACKETIZED:
-            {
-                Ucs_Xrm_AvpCon_t *con = MCalloc(&vp->objList, 1, sizeof(Ucs_Xrm_AvpCon_t));
-                if (NULL == con) return Parse_MemoryError;
-                if (!AddJob(vp->jobList, con))
-                    return Parse_XmlError;
-                con->resource_type = UCS_XRM_RC_TYPE_AVP_CON;
-                con->socket_in_obj_ptr = vp->inSocket;
-                con->socket_out_obj_ptr = vp->outSocket;
-                con->isoc_packet_size = UCS_ISOC_PCKT_SIZE_188; //TODO:Read from XML
-                break;
-            }
+            p.usbPort = priv->nodeData.usbPort;
+        } else {
+            if (!GetUsbPortDefaultCreated(&p.usbPort, &priv->objList)) 
+                RETURN_ASSERT(Parse_XmlError);
+            priv->nodeData.usbPort = (Ucs_Xrm_UsbPort_t *)p.usbPort;
+        }
+        if (!priv->nodeData.usbPortAddedToJobList)
+        {
+            priv->nodeData.usbPortAddedToJobList = true;
+            if(!AddJob(jobList, p.usbPort, &priv->objList)) RETURN_ASSERT(Parse_XmlError);
+        }
+        if (!GetString(soc, ENDPOINT_ADDRESS, &p.endpointAddress, true)) RETURN_ASSERT(Parse_XmlError);
+        if (!GetString(soc, FRAMES_PER_TRANSACTION, &p.framesPerTrans, true)) RETURN_ASSERT(Parse_XmlError);
+        if (!GetUsbSocket((Ucs_Xrm_UsbSocket_t **)targetSock, &p)) RETURN_ASSERT(Parse_XmlError);
+        if (!AddJob(jobList, *targetSock, &priv->objList)) RETURN_ASSERT(Parse_XmlError);
+        break;
+    }
+    case MSocket_MLB:
+    {
+        struct MlbSocketParameters p;
+        p.list = &priv->objList;
+        p.isSource = isSource;
+        p.dataType = priv->conData.dataType;
+        if (priv->nodeData.mlbPort)
+        {
+            p.mlbPort = priv->nodeData.mlbPort;
+        } else {
+            if (!GetMlbPortDefaultCreated(&p.mlbPort, &priv->objList)) 
+                RETURN_ASSERT(Parse_XmlError);
+            priv->nodeData.mlbPort = (Ucs_Xrm_MlbPort_t *)p.mlbPort;
+        }
+        if (!priv->nodeData.mlbPortAddedToJobList)
+        {
+            priv->nodeData.mlbPortAddedToJobList = true;
+            if (!AddJob(jobList, p.mlbPort, &priv->objList)) RETURN_ASSERT(Parse_XmlError);
+        }
+        if (!GetUInt16(soc, BANDWIDTH, &p.bandwidth, true)) RETURN_ASSERT(Parse_XmlError);
+        if (!GetString(soc, CHANNEL_ADDRESS, &p.channelAddress, true)) RETURN_ASSERT(Parse_XmlError);
+        if (!GetMlbSocket((Ucs_Xrm_MlbSocket_t **)targetSock, &p)) RETURN_ASSERT(Parse_XmlError);
+        if (!AddJob(jobList, *targetSock, &priv->objList)) RETURN_ASSERT(Parse_XmlError);
+        break;
+    }
+    case MSocket_STRM:
+    {
+        struct StrmSocketParameters p;
+        p.list = &priv->objList;
+        p.isSource = isSource;
+        p.dataType = priv->conData.dataType;
+        p.streamPortA = priv->nodeData.strmPortA;
+        p.streamPortB = priv->nodeData.strmPortB;
+        if (!priv->nodeData.strmPortsAddedToJobList)
+        {
+            priv->nodeData.strmPortsAddedToJobList = true;
+            if (!AddJob(jobList, p.streamPortA, &priv->objList)) RETURN_ASSERT(Parse_XmlError);
+            if (!AddJob(jobList, p.streamPortB, &priv->objList)) RETURN_ASSERT(Parse_XmlError);
+        }
+        if (!GetUInt16(soc, BANDWIDTH, &p.bandwidth, true)) RETURN_ASSERT(Parse_XmlError);
+        if (!GetString(soc, STRM_PIN, &p.streamPin, true)) RETURN_ASSERT(Parse_XmlError);
+        if (!GetStrmSocket((Ucs_Xrm_StrmSocket_t **)targetSock, &p)) RETURN_ASSERT(Parse_XmlError);
+        if (!AddJob(jobList, *targetSock, &priv->objList)) RETURN_ASSERT(Parse_XmlError);
+        break;
+    }
+    case MSocket_SPLITTER:
+    {
+        mxml_node_t *mostSoc;
+        struct SplitterParameters p;
+        if (isSource)
+        {
+            UcsXml_CB_OnError("Splitter can not be used as input socket", 0);
+            RETURN_ASSERT(Parse_XmlError);
+        }
+        p.list = &priv->objList;
+        if (!GetUInt16(soc, BYTES_PER_FRAME, &p.bytesPerFrame, true)) RETURN_ASSERT(Parse_XmlError);
+        /* Current input socket will be stored inside splitter 
+         * and splitter will become the new input socket */
+        if (!(p.inSoc = priv->conData.inSocket)) RETURN_ASSERT(Parse_XmlError);
+        if (!GetSplitter((Ucs_Xrm_Splitter_t **)&priv->conData.inSocket, &p)) RETURN_ASSERT(Parse_XmlError);
+        if (!AddJob(jobList, priv->conData.inSocket, &priv->objList)) RETURN_ASSERT(Parse_XmlError);
+        if (!GetElement(soc->child, MOST_SOCKET, false, &mostSoc, true))
+            RETURN_ASSERT(Parse_XmlError);
+        priv->conData.syncOffsetNeeded = true;
+        
+        while(mostSoc)
+        {
+            struct UcsXmlJobList *jobListCopy = DeepCopyJobList(*jobList, &priv->objList);
+            if (!ParseSocket(mostSoc, false, MSocket_MOST, &jobListCopy, priv)) RETURN_ASSERT(Parse_XmlError);
+            if (!GetElement(mostSoc, MOST_SOCKET, false, &mostSoc, false))
+                return Parse_Success; /* Do not break here, otherwise an additional invalid route will be created */
+        }
+        break;
+    }
+    case MSocket_COMBINER:
+    {
+        struct CombinerParameters p;
+        if (!isSource)
+        {
+            UcsXml_CB_OnError("Combiner can not be used as output socket", 0);
+            RETURN_ASSERT(Parse_XmlError);
+        }
+        p.list = &priv->objList;
+        if (!GetUInt16(soc, BYTES_PER_FRAME, &p.bytesPerFrame, true)) RETURN_ASSERT(Parse_XmlError);
+        if (!GetCombiner(&priv->conData.combiner, &p)) RETURN_ASSERT(Parse_XmlError);
+        priv->conData.syncOffsetNeeded = true;
+        if (!GetElement(soc->child, MOST_SOCKET, false, &priv->conData.pendingCombinerMostSockets, true))
+            RETURN_ASSERT(Parse_XmlError);
+        break;
+    }
+    default:
+        RETURN_ASSERT(Parse_XmlError);
+    }
+    /*Handle Pending Combiner Tasks*/
+    if (NULL != priv->conData.outSocket && NULL != priv->conData.combiner && 
+        NULL != priv->conData.pendingCombinerMostSockets)
+    {
+        mxml_node_t *tmp = priv->conData.pendingCombinerMostSockets;
+        priv->conData.pendingCombinerMostSockets = NULL;
+        /* Current output socket will be stored inside combiner 
+         * and combiner will become the new output socket */
+        priv->conData.combiner->port_socket_obj_ptr = priv->conData.outSocket;
+        priv->conData.outSocket = priv->conData.combiner;
+        while(tmp)
+        {
+            struct UcsXmlJobList *jobListCopy = DeepCopyJobList(*jobList, &priv->objList);
+            if (!ParseSocket(tmp, true, MSocket_MOST, &jobListCopy, priv)) RETURN_ASSERT(Parse_XmlError);
+            if (!GetElement(tmp, MOST_SOCKET, false, &tmp, false))
+                return Parse_Success; /* Do not break here, otherwise an additional invalid route will be created */
+        }
+    }
+    /*Connect in and out socket once they are created*/
+    if (priv->conData.inSocket && priv->conData.outSocket)
+    {
+        bool mostIsOutput;
+        Ucs_Rm_EndPoint_t *ep;
+        struct UcsXmlRoute *route;
+        switch(priv->conData.dataType)
+        {
         case SYNC_DATA:
-            {
-                Ucs_Xrm_SyncCon_t *con = MCalloc(&vp->objList, 1, sizeof(Ucs_Xrm_SyncCon_t));
-                if (NULL == con) return Parse_MemoryError;
-                if (!AddJob(vp->jobList, con))
-                    return Parse_XmlError;
-                con->resource_type = UCS_XRM_RC_TYPE_SYNC_CON;
-                con->socket_in_obj_ptr = vp->inSocket;
-                con->socket_out_obj_ptr = vp->outSocket;
-                con->mute_mode = UCS_SYNC_MUTE_MODE_NO_MUTING; //TODO:Read from XML
-                con->offset = offset;
-                break;
-            }
-        default:
-            UcsXml_CB_OnError("Could not connect sockets, data type not implemented: %d", 1, vp->dataType);
-            return Parse_XmlError;
+        {
+            Ucs_Xrm_SyncCon_t *con = MCalloc(&priv->objList, 1, sizeof(Ucs_Xrm_SyncCon_t));
+            if (NULL == con) RETURN_ASSERT(Parse_MemoryError);
+            if (!AddJob(jobList, con, &priv->objList)) RETURN_ASSERT(Parse_XmlError);
+            con->resource_type = UCS_XRM_RC_TYPE_SYNC_CON;
+            con->socket_in_obj_ptr = priv->conData.inSocket;
+            con->socket_out_obj_ptr = priv->conData.outSocket;
+            con->mute_mode = priv->conData.muteMode;
+            con->offset = priv->conData.syncOffset;
             break;
         }
-        Ucs_Rm_EndPoint_t *ep = MCalloc(&vp->objList, 1, sizeof(Ucs_Rm_EndPoint_t));
-        if (NULL == ep) return Parse_MemoryError;
-        ep->endpoint_type = isSource ? UCS_RM_EP_SOURCE : UCS_RM_EP_SINK;
-        ep->jobs_list_ptr = vp->jobList;
-        ep->node_obj_ptr = vp->nod;
+        case AV_PACKETIZED:
+        {
+            Ucs_Xrm_AvpCon_t *con = MCalloc(&priv->objList, 1, sizeof(Ucs_Xrm_AvpCon_t));
+            if (NULL == con) RETURN_ASSERT(Parse_MemoryError);
+            if (!AddJob(jobList, con, &priv->objList)) RETURN_ASSERT(Parse_XmlError);
+            con->resource_type = UCS_XRM_RC_TYPE_AVP_CON;
+            con->socket_in_obj_ptr = priv->conData.inSocket;
+            con->socket_out_obj_ptr = priv->conData.outSocket;
+            con->isoc_packet_size = priv->conData.isocPacketSize;
+            break;
+        }
+        default:
+            UcsXml_CB_OnError("Could not connect sockets, data type not implemented: %d", 1, priv->conData.dataType);
+            RETURN_ASSERT(Parse_XmlError);
+            break;
+        }
+        ep = MCalloc(&priv->objList, 1, sizeof(Ucs_Rm_EndPoint_t));
+        if (NULL == ep) RETURN_ASSERT(Parse_MemoryError);
 
-        struct UcsXmlRouteInfo *route = MCalloc(&vp->objList, 1, sizeof(struct UcsXmlRouteInfo));
-        if (NULL == route) return Parse_MemoryError;
-        route->isSource = isSource;
+        mostIsOutput = (UCS_XRM_RC_TYPE_MOST_SOCKET == *((Ucs_Xrm_ResourceType_t *)priv->conData.outSocket));
+        ep->endpoint_type = mostIsOutput ? UCS_RM_EP_SOURCE : UCS_RM_EP_SINK;
+        ep->jobs_list_ptr = GetJobList(*jobList, &priv->objList);
+        if(NULL == ep->jobs_list_ptr) RETURN_ASSERT(Parse_MemoryError);
+        ep->node_obj_ptr = priv->nodeData.nod;
+        route = MCalloc(&priv->objList, 1, sizeof(struct UcsXmlRoute));
+        if (NULL == route) RETURN_ASSERT(Parse_MemoryError);
+        route->isSource = mostIsOutput;
+        route->isActive = !priv->conData.isDeactivated;
+        route->routeId = priv->conData.routeId;
         route->ep = ep;
-        strncpy(route->routeName, vp->chName, sizeof(route->routeName));
-        AddRoute(&vp->pRtLst, route);
+        assert(NULL != priv->conData.routeName);
+        strncpy(route->routeName, priv->conData.routeName, sizeof(route->routeName));
+        AddRoute(&priv->pRtLst, route);
     }
     return Parse_Success;
 }
 
-static ParseResult_t ParseMostSoc(Ucs_Xrm_MostSocket_t *mostSoc, mxml_node_t *soc, PrivateData_t *vp)
+static ParseResult_t ParseScript(mxml_node_t *scr, PrivateData_t *priv)
 {
-    assert(NULL != mostSoc && NULL != soc && NULL != vp);
-    COMPILETIME_CHECK(SYNC_DATA == (MData_t)UCS_MOST_SCKT_SYNC_DATA);
-    COMPILETIME_CHECK(AV_PACKETIZED == (MData_t)UCS_MOST_SCKT_AV_PACKETIZED);
-    COMPILETIME_CHECK(QOS_IP == (MData_t)UCS_MOST_SCKT_QOS_IP);
-    COMPILETIME_CHECK(DISC_FRAME_PHASE == (MData_t)UCS_MOST_SCKT_DISC_FRAME_PHASE);
-    switch((MData_t)mostSoc->data_type)
-    {
-        case SYNC_DATA:
-        case AV_PACKETIZED:
-        case QOS_IP:
-        case DISC_FRAME_PHASE:
-            break; //Nothing to do, valid values.
-        default:
-            UcsXml_CB_OnError("Invalid DataType=%d for MOST socket", 1, mostSoc->data_type);
-            return Parse_XmlError;
-    }
-    mostSoc->resource_type = UCS_XRM_RC_TYPE_MOST_SOCKET;
-    mostSoc->most_port_handle = 0x0D00;
-    if (!GetDirection(soc, &mostSoc->direction))
-        return Parse_XmlError;
-    return Parse_Success;
-}
-
-static ParseResult_t ParseUsbSoc(Ucs_Xrm_UsbSocket_t *usbSoc, mxml_node_t *soc, PrivateData_t *vp)
-{
-    Ucs_Xrm_DefaultCreatedPort_t *p;
-    assert(NULL != usbSoc && NULL != soc && NULL != vp);
-    COMPILETIME_CHECK(SYNC_DATA == (MData_t)UCS_USB_SCKT_SYNC_DATA);
-    COMPILETIME_CHECK(CONTROL_DATA == (MData_t)UCS_USB_SCKT_CONTROL_DATA);
-    COMPILETIME_CHECK(AV_PACKETIZED == (MData_t)UCS_USB_SCKT_AV_PACKETIZED);
-    switch((MData_t)usbSoc->data_type)
-    {
-        case SYNC_DATA:
-        case CONTROL_DATA:
-        case AV_PACKETIZED:
-            break; //Nothing to do, valid values.
-        default:
-            UcsXml_CB_OnError("Invalid DataType=%d for USB socket", 1, usbSoc->data_type);
-            return Parse_XmlError;
-    }
-    usbSoc->resource_type = UCS_XRM_RC_TYPE_USB_SOCKET;
-    if (!GetDirection(soc, &usbSoc->direction))
-        return Parse_XmlError;
-    if (!GetUInt8(soc, ADDRESS, &usbSoc->end_point_addr, true))
-        return Parse_XmlError;
-
-    if (!GetUInt16(soc, PACKETS_XACT, &usbSoc->frames_per_transfer, true))
-        return Parse_XmlError;
-
-    //XML provides currently no way to open USB port, so use ConfigString default
-    p = MCalloc(&vp->objList, 1, sizeof(Ucs_Xrm_DefaultCreatedPort_t));
-    if (NULL == p) return Parse_MemoryError;
-    if (!AddJob(vp->jobList, p)) return Parse_MemoryError;
-    p->resource_type = UCS_XRM_RC_TYPE_DC_PORT;
-    p->port_type = UCS_XRM_PORT_TYPE_USB;
-    p->index = 0;
-    usbSoc->usb_port_obj_ptr = p;
-    return Parse_Success;
-}
-
-static ParseResult_t ParseMlbSoc(Ucs_Xrm_MlbSocket_t *mlbSoc, mxml_node_t *soc, PrivateData_t *vp)
-{
-    Ucs_Mlb_ClockConfig_t clock;
-    assert(NULL != mlbSoc && NULL != soc && NULL != vp);
-    COMPILETIME_CHECK(SYNC_DATA == (MData_t)UCS_MLB_SCKT_SYNC_DATA);
-    COMPILETIME_CHECK(CONTROL_DATA == (MData_t)UCS_MLB_SCKT_CONTROL_DATA);
-    COMPILETIME_CHECK(AV_PACKETIZED == (MData_t)UCS_USB_SCKT_AV_PACKETIZED);
-    COMPILETIME_CHECK(QOS_IP == (MData_t)UCS_MLB_SCKT_QOS_IP);
-    COMPILETIME_CHECK(DISC_FRAME_PHASE == (MData_t)UCS_MLB_SCKT_DISC_FRAME_PHASE);
-    COMPILETIME_CHECK(IPC_PACKET == (MData_t)UCS_MLB_SCKT_IPC_PACKET);
-    switch((MData_t)mlbSoc->data_type)
-    {
-        case SYNC_DATA:
-        case CONTROL_DATA:
-        case AV_PACKETIZED:
-        case QOS_IP:
-        case DISC_FRAME_PHASE:
-        case IPC_PACKET:
-            break; //Nothing to do, valid values.
-        default:
-            UcsXml_CB_OnError("Invalid DataType=%d for MLB socket", 1, mlbSoc->data_type);
-            return Parse_XmlError;
-    }
-    mlbSoc->resource_type = UCS_XRM_RC_TYPE_MLB_SOCKET;
-    if (!GetDirection(soc, &mlbSoc->direction))
-        return Parse_XmlError;
-    if (!GetUInt16(soc, ADDRESS, &mlbSoc->channel_address, true))
-         return Parse_XmlError;
-
-    //Create MLB port when DEVICE_MLB_SPEED is defined, otherwise use ConfigString default
-    if (GetMlbSpeed(soc, DEVICE_MLB_SPEED, &clock, false))
-    {
-        Ucs_Xrm_MlbPort_t *p = MCalloc(&vp->objList, 1, sizeof(Ucs_Xrm_MlbPort_t));
-        if (NULL == p) return Parse_MemoryError;
-        if (!AddJob(vp->jobList, p)) return Parse_MemoryError;
-        p->resource_type = UCS_XRM_RC_TYPE_MLB_PORT;
-        p->index = 0;
-        p->clock_config = clock;
-        mlbSoc->mlb_port_obj_ptr = p;
-    } else {
-        Ucs_Xrm_DefaultCreatedPort_t *p = MCalloc(&vp->objList, 1, sizeof(Ucs_Xrm_DefaultCreatedPort_t));
-        if (NULL == p) return Parse_MemoryError;
-        if (!AddJob(vp->jobList, p)) return Parse_MemoryError;
-        p->resource_type = UCS_XRM_RC_TYPE_DC_PORT;
-        p->port_type = UCS_XRM_PORT_TYPE_MLB;
-        p->index = 0;
-        mlbSoc->mlb_port_obj_ptr = p;
-    }
-    return Parse_Success;
-}
-
-static ParseResult_t ParseStreamSoc(Ucs_Xrm_StrmSocket_t *strmSoc, mxml_node_t *soc, PrivateData_t *vp)
-{
-    const char *txt;
-    Ucs_Xrm_StrmPort_t *strPort;
-    assert(NULL != strmSoc && NULL != soc && NULL != vp);
-    COMPILETIME_CHECK(SYNC_DATA == (MData_t)UCS_STREAM_PORT_SCKT_SYNC_DATA);
-    if (SYNC_DATA != (MData_t)strmSoc->data_type)
-    {
-        UcsXml_CB_OnError("Invalid DataType=%d for I2S socket", 1, strmSoc->data_type);
-            return Parse_XmlError;
-    }
-    strPort = MCalloc(&vp->objList, 1, sizeof(Ucs_Xrm_StrmPort_t));
-    if (NULL == strPort) return Parse_MemoryError;
-    if (!AddJob(vp->jobList, strPort)) return Parse_MemoryError;
-    if (!AddJob(vp->jobList, strmSoc)) return Parse_MemoryError;
-    strmSoc->resource_type = UCS_XRM_RC_TYPE_STRM_SOCKET;
-    strmSoc->stream_port_obj_ptr = strPort;
-
-    strPort->resource_type = UCS_XRM_RC_TYPE_STRM_PORT;
-    if (!GetDirection(soc, &strmSoc->direction))
-        return Parse_XmlError;
-    if (!GetI2SPin(soc, &strmSoc->stream_pin_id, &strPort->index, true))
-        return Parse_XmlError;
-    if (!GetI2SSpeed(soc, I2S_FS_SPEED, &strPort->clock_config, true))
-        return Parse_XmlError;
-    if (!GetString(soc, I2S_ALIGN, &txt, true))
-        return Parse_XmlError;
-    if (!GetI2SAlignment(soc, &strPort->data_alignment, true))
-        return Parse_XmlError;
-    return Parse_Success;
-}
-
-static ParseResult_t ParseScript(mxml_node_t *scr, PrivateData_t *vp)
-{
+    bool found = false;
     mxml_node_t *act;
     uint32_t actCnt;
     uint32_t i = 0;
     const char *txt;
-    assert(NULL != scr && NULL != vp);
-    vp->pause = 0;
+    struct UcsXmlScript *scrlist;
+    Ucs_Ns_Script_t *script;
+    assert(NULL != scr && NULL != priv);
+    priv->scriptData.pause = 0;
+    scrlist = priv->pScrLst;
+    if (!GetCountArray(scr->child, ALL_SCRIPTS, &actCnt, false)) RETURN_ASSERT(Parse_XmlError);
+    if (NULL == (script = MCalloc(&priv->objList, actCnt, sizeof(Ucs_Ns_Script_t))))
+        RETURN_ASSERT(Parse_MemoryError);
+    actCnt = 0;
+    /*Iterate all actions*/
+    if (!GetElementArray(scr->child, ALL_SCRIPTS, &txt, &act)) RETURN_ASSERT(Parse_XmlError);
+    while(act)
+    {
+        if (0 == strcmp(txt, SCRIPT_MSG_SEND)) {
+            ParseResult_t result = ParseScriptMsgSend(act, &script[i], priv);
+            if (Parse_Success != result) return result;
+            ++actCnt;
+        } else if (0 == strcmp(txt, SCRIPT_GPIO_PORT_CREATE)) {
+            ParseResult_t result = ParseScriptGpioPortCreate(act, &script[i], priv);
+            if (Parse_Success != result) return result;
+            ++actCnt;
+        } else if (0 == strcmp(txt, SCRIPT_GPIO_PORT_PIN_MODE)) {
+            ParseResult_t result = ParseScriptGpioPinMode(act, &script[i], priv);
+            if (Parse_Success != result) return result;
+            ++actCnt;
+        } else if (0 == strcmp(txt, SCRIPT_GPIO_PIN_STATE)) {
+            ParseResult_t result = ParseScriptGpioPinState(act, &script[i], priv);
+            if (Parse_Success != result) return result;
+            ++actCnt;
+        } else if (0 == strcmp(txt, SCRIPT_I2C_PORT_CREATE)) {
+            ParseResult_t result = ParseScriptPortCreate(act, &script[i], priv);
+            if (Parse_Success != result) return result;
+            ++actCnt;
+        } else if (0 == strcmp(txt, SCRIPT_I2C_PORT_WRITE)) {
+            ParseResult_t result = ParseScriptPortWrite(act, &script[i], priv);
+            if (Parse_Success != result) return result;
+            ++actCnt;
+        } else if (0 == strcmp(txt, SCRIPT_I2C_PORT_READ)) {
+            ParseResult_t result = ParseScriptPortRead(act, &script[i], priv);
+            if (Parse_Success != result) return result;
+            ++actCnt;
+        } else if (0 == strcmp(txt, SCRIPT_PAUSE)) {
+            ParseResult_t result = ParseScriptPause(act, &script[i], priv);
+            if (Parse_Success != result) return result;
+        } else {
+            UcsXml_CB_OnError("Unknown script action:'%s'", 1, txt);
+            /*RETURN_ASSERT(Parse_XmlError);*/
+        }
+        if (!GetElementArray(act, ALL_SCRIPTS, &txt, &act))
+            break;
+        ++i;
+    }
     if (!GetString(scr, NAME, &txt, true))
-        return Parse_XmlError;
-    Ucs_Rm_Node_t *n = NULL;
-    struct UcsXmlScriptInfo *scrlist = vp->pScrLst;
+        RETURN_ASSERT(Parse_XmlError);
     while(NULL != scrlist)
     {
         if (0 == strcmp(txt, scrlist->scriptName))
         {
-            n = scrlist->node;
-            break;
+            Ucs_Rm_Node_t *node = scrlist->node;
+            node->script_list_ptr = script;
+            node->script_list_size = actCnt;
+            found = true;
         }
         scrlist = scrlist->next;
     }
-    if (NULL == n)
+    if(!found)
     {
         UcsXml_CB_OnError("Script defined:'%s', which was never referenced", 1, txt);
-        return Parse_XmlError;
-    }
-    if (!GetCount(scr, ACTION, &actCnt, true)) return Parse_XmlError;
-    if (NULL == (n->script_list_ptr = MCalloc(&vp->objList, actCnt, sizeof(Ucs_Ns_Script_t))))
-        return Parse_MemoryError;
-    n->script_list_size = actCnt;
-    ///Iterate all actions
-    if (!GetElement(scr, ACTION, true, &act, true)) return false;
-    while(act)
-    {
-        ParseResult_t result = ParseScriptAction(act, n, i, vp);
-        if (Parse_Success != result) return result;
-        if (!GetElement(act, ACTION, false, &act, false))
-            break;
-        ++i;
+        RETURN_ASSERT(Parse_XmlError);
     }
     return Parse_Success;
 }
 
-static ParseResult_t ParseScriptAction(mxml_node_t *act, Ucs_Rm_Node_t *n, uint32_t index, PrivateData_t *vp)
+static bool FillScriptInitialValues(Ucs_Ns_Script_t *scr, PrivateData_t *priv)
+{
+    assert(NULL != scr && NULL != priv);
+    scr->send_cmd = MCalloc(&priv->objList, 1, sizeof(Ucs_Ns_ConfigMsg_t));
+    scr->exp_result = MCalloc(&priv->objList, 1, sizeof(Ucs_Ns_ConfigMsg_t));
+    assert(scr->send_cmd && scr->exp_result);
+    if (NULL == scr->send_cmd || NULL == scr->exp_result) return false;
+    scr->pause = priv->scriptData.pause;
+    priv->scriptData.pause = 0;
+    return true;
+}
+
+static ParseResult_t ParseScriptMsgSend(mxml_node_t *act, Ucs_Ns_Script_t *scr, PrivateData_t *priv)
+{
+    Ucs_Ns_ConfigMsg_t *req, *res;
+    assert(NULL != act && NULL != scr && NULL != priv);
+    if (!FillScriptInitialValues(scr, priv)) return Parse_MemoryError;
+    req = scr->send_cmd;
+    res = scr->exp_result;
+    req->InstId = res->InstId = 1;
+    if (!GetUInt8(act, FBLOCK_ID, &req->FBlockId, true))
+        RETURN_ASSERT(Parse_XmlError);
+
+    if (!GetUInt16(act, FUNCTION_ID, &req->FunktId, true))
+        RETURN_ASSERT(Parse_XmlError);
+
+    if (!GetUInt8(act, OP_TYPE_REQUEST, &req->OpCode, true))
+        RETURN_ASSERT(Parse_XmlError);
+
+    if (!GetUInt8(act, OP_TYPE_RESPONSE, &res->OpCode, true))
+        RETURN_ASSERT(Parse_XmlError);
+    
+    res->FBlockId = req->FBlockId;
+    res->FunktId = req->FunktId;
+    GetPayload(act, PAYLOAD_RES_HEX, &res->DataPtr, &res->DataLen, 0, &priv->objList, false);
+    
+    if (!GetPayload(act, PAYLOAD_REQ_HEX, &req->DataPtr, &req->DataLen, 0, &priv->objList, true))
+        RETURN_ASSERT(Parse_XmlError);
+    if (0 == req->DataLen || NULL == req->DataPtr)
+        RETURN_ASSERT(Parse_XmlError);
+    return Parse_Success;
+}
+
+static ParseResult_t ParseScriptGpioPortCreate(mxml_node_t *act, Ucs_Ns_Script_t *scr, PrivateData_t *priv)
+{
+    uint16_t debounce;
+    Ucs_Ns_ConfigMsg_t *req, *res;
+    assert(NULL != act && NULL != scr && NULL != priv);
+    if (!FillScriptInitialValues(scr, priv))
+        RETURN_ASSERT(Parse_MemoryError);
+    if (!GetUInt16(act, DEBOUNCE_TIME, &debounce, true))
+        RETURN_ASSERT(Parse_XmlError);
+    req = scr->send_cmd;
+    res = scr->exp_result;
+    req->InstId = res->InstId = 1;
+    req->FunktId = res->FunktId = 0x701;
+    req->OpCode = 0x2;
+    res->OpCode = 0xC;
+    req->DataLen = 3;
+    res->DataLen = 2;
+    req->DataPtr = MCalloc(&priv->objList, req->DataLen, 1);
+    if (NULL == req->DataPtr) return Parse_MemoryError;
+    res->DataPtr = MCalloc(&priv->objList, res->DataLen, 1);
+    if (NULL == res->DataPtr) return Parse_MemoryError;
+    req->DataPtr[0] = 0; /*GPIO Port instance, always 0*/
+    req->DataPtr[1] = MISC_HB(debounce);
+    req->DataPtr[2] = MISC_LB(debounce);
+
+    res->DataPtr[0] = 0x1D;
+    res->DataPtr[1] = 0x00;
+    return Parse_Success;
+}
+
+static ParseResult_t ParseScriptGpioPinMode(mxml_node_t *act, Ucs_Ns_Script_t *scr, PrivateData_t *priv)
+{
+#define PORT_HANDLE_OFFSET (2)
+    uint8_t *payload;
+    uint8_t payloadLen = 0;
+    Ucs_Ns_ConfigMsg_t *req, *res;
+    assert(NULL != act && NULL != scr && NULL != priv);
+    if (!FillScriptInitialValues(scr, priv))
+        RETURN_ASSERT(Parse_MemoryError);
+    req = scr->send_cmd;
+    res = scr->exp_result;
+    req->InstId = res->InstId = 1;
+    req->FunktId = res->FunktId = 0x703;
+    req->OpCode = 0x2;
+    res->OpCode = 0xC;
+    if (!GetPayload(act, PIN_CONFIG, &payload, &payloadLen, 
+        PORT_HANDLE_OFFSET, /* First two bytes are reserved for port handle */
+        &priv->objList, true)) RETURN_ASSERT(Parse_XmlError);
+    payload[0] = 0x1D;
+    payload[1] = 0x00;
+    req->DataPtr = payload;
+    res->DataPtr = payload;
+    req->DataLen = payloadLen + PORT_HANDLE_OFFSET;
+    res->DataLen = payloadLen + PORT_HANDLE_OFFSET;
+    return Parse_Success;
+}
+
+static ParseResult_t ParseScriptGpioPinState(mxml_node_t *act, Ucs_Ns_Script_t *scr, PrivateData_t *priv)
+{
+    uint16_t mask, data;
+    Ucs_Ns_ConfigMsg_t *req, *res;
+    assert(NULL != act && NULL != scr && NULL != priv);
+    if (!FillScriptInitialValues(scr, priv))
+        RETURN_ASSERT(Parse_MemoryError);
+    if (!GetUInt16(act, PIN_MASK, &mask, true))
+        RETURN_ASSERT(Parse_XmlError);
+    if (!GetUInt16(act, PIN_DATA, &data, true))
+        RETURN_ASSERT(Parse_XmlError);
+    req = scr->send_cmd;
+    res = scr->exp_result;
+    req->InstId = res->InstId = 1;
+    req->FunktId = res->FunktId = 0x704;
+    req->OpCode = 0x2;
+    res->OpCode = 0xC;
+    req->DataLen = 6;
+    res->DataLen = 8;
+    req->DataPtr = MCalloc(&priv->objList, req->DataLen, 1);
+    if (NULL == req->DataPtr) return Parse_MemoryError;
+    res->DataPtr = MCalloc(&priv->objList, res->DataLen, 1);
+    if (NULL == res->DataPtr) return Parse_MemoryError;
+    req->DataPtr[0] = 0x1D;
+    req->DataPtr[1] = 0x00;
+    req->DataPtr[2] = MISC_HB(mask);
+    req->DataPtr[3] = MISC_LB(mask);
+    req->DataPtr[4] = MISC_HB(data);
+    req->DataPtr[5] = MISC_LB(data);
+    memcpy(res->DataPtr, req->DataPtr, req->DataLen);
+    res->DataPtr[6] = 0x00;
+    res->DataPtr[7] = 0x00;
+    return Parse_Success;
+}
+
+static ParseResult_t ParseScriptPortCreate(mxml_node_t *act, Ucs_Ns_Script_t *scr, PrivateData_t *priv)
 {
     const char *txt;
-    uint8_t opResult;
-    assert(NULL != act && NULL != vp);
-    Ucs_Ns_Script_t *scr =  &n->script_list_ptr[index];
-    if (!GetString(act, TYPE, &txt, true))
-        return Parse_XmlError;
-    if (0 == strcmp(txt, SEND_MSG))
-    {
-        Ucs_Ns_ConfigMsg_t *req;
-        scr->send_cmd = MCalloc(&vp->objList, 1, sizeof(Ucs_Ns_ConfigMsg_t));
-        req = scr->send_cmd;
-        if (NULL == req) return Parse_MemoryError;
-        scr->pause = vp->pause;
-        if (vp->pause) vp->pause = 0;
-        req->InstId = 1;
-        if (!GetUInt8(act, FBLOCK_ID, &req->FBlockId, true))
-            return Parse_XmlError;
+    uint8_t speed;
+    Ucs_Ns_ConfigMsg_t *req, *res;
+    assert(NULL != act && NULL != scr && NULL != priv);
+    if (!FillScriptInitialValues(scr, priv))
+        RETURN_ASSERT(Parse_MemoryError);
+    if (!GetString(act, I2C_SPEED, &txt, true))
+        RETURN_ASSERT(Parse_XmlError);
+    if (0 == strcmp(txt, I2C_SPEED_SLOW))
+        speed = 0;
+    else if (0 == strcmp(txt, I2C_SPEED_FAST))
+        speed = 1;
+    else RETURN_ASSERT(Parse_XmlError);
+    req = scr->send_cmd;
+    res = scr->exp_result;
+    req->InstId = res->InstId = 1;
+    req->FunktId = res->FunktId = 0x6C1;
+    req->OpCode = 0x2;
+    res->OpCode = 0xC;
+    req->DataLen = 4;
+    res->DataLen = 2;
+    req->DataPtr = MCalloc(&priv->objList, req->DataLen, 1);
+    if (NULL == req->DataPtr) return Parse_MemoryError;
+    res->DataPtr = MCalloc(&priv->objList, res->DataLen, 1);
+    if (NULL == res->DataPtr) return Parse_MemoryError;
+    req->DataPtr[0] = 0x00; /* I2C Port Instance always 0 */
+    req->DataPtr[1] = 0x00; /* I2C slave address, always 0, because we are Master */
+    req->DataPtr[2] = 0x01; /* We are Master */
+    req->DataPtr[3] = speed;
 
-        if (!GetUInt16(act, FUNCTION_ID, &req->FunktId, true))
-            return Parse_XmlError;
-
-        if (!GetUInt8(act, OP_TYPE_REQUEST, &req->OpCode, true))
-            return Parse_XmlError;
-
-        if (GetUInt8(act, OP_TYPE_RESPONSE, &opResult, false))
-        {
-            //Waiting for response is optional
-            Ucs_Ns_ConfigMsg_t *res;
-            scr->exp_result = MCalloc(&vp->objList, 1, sizeof(Ucs_Ns_ConfigMsg_t));
-            res = scr->exp_result;
-            res->FBlockId = req->FBlockId;
-            res->InstId = req->InstId;
-            res->FunktId = req->FunktId;
-            res->OpCode = opResult;
-            //Not interested in result:
-            GetPayload(act, PAYLOAD_RES_HEX, &res->DataPtr, &res->DataLen, &vp->objList, false);
-        }
-        if (!GetPayload(act, PAYLOAD_REQ_HEX, &req->DataPtr, &req->DataLen, &vp->objList, true))
-            return Parse_XmlError;
-        if (0 == req->DataLen || NULL == req->DataPtr)
-            return Parse_XmlError;
-    }
-    else if (0 == strcmp(txt, PAUSE))
-    {
-        if (!GetUInt16(act, PAUSE_MS, &vp->pause, true))
-            return Parse_XmlError;
-    }
+    res->DataPtr[0] = 0x0F;
+    res->DataPtr[1] = 0x00;
     return Parse_Success;
 }
 
-static ParseResult_t ParseRoutes(UcsXmlVal_t *v, PrivateData_t *vp)
+static ParseResult_t ParseScriptPortWrite(mxml_node_t *act, Ucs_Ns_Script_t *scr, PrivateData_t *priv)
+{
+#define HEADER_OFFSET 8
+    const char *txt;
+    uint8_t mode, blockCount, address, length, payloadLength;
+    uint16_t timeout;
+    uint8_t *payload;
+    Ucs_Ns_ConfigMsg_t *req, *res;
+    assert(NULL != act && NULL != scr && NULL != priv);
+    if (GetString(act, I2C_WRITE_MODE, &txt, false))
+    {
+        if (0 == strcmp(txt, I2C_WRITE_MODE_DEFAULT))
+            mode = 0;
+        else if (0 == strcmp(txt, I2C_WRITE_MODE_REPEAT))
+            mode = 1;
+        else if (0 == strcmp(txt, I2C_WRITE_MODE_BURST))
+            mode = 2;
+    } else {
+        mode = 0;
+    }
+    if (!GetUInt8(act, I2C_WRITE_BLOCK_COUNT, &blockCount, false))
+        blockCount = 0;
+    if (!GetUInt8(act, I2C_SLAVE_ADDRESS, &address, true))
+        RETURN_ASSERT(Parse_XmlError);
+    if (!GetUInt8(act, I2C_PAYLOAD_LENGTH, &length, false))
+        length = 0;
+    if (!GetUInt16(act, I2C_TIMEOUT, &timeout, false))
+        timeout = 100;
+    if (!GetPayload(act, I2C_PAYLOAD, &payload, &payloadLength, HEADER_OFFSET, &priv->objList, true))
+        RETURN_ASSERT(Parse_XmlError);
+    if (0 == length)
+        length = payloadLength;
+    if (!FillScriptInitialValues(scr, priv))
+        RETURN_ASSERT(Parse_MemoryError);
+    req = scr->send_cmd;
+    res = scr->exp_result;
+    req->InstId = res->InstId = 1;
+    req->FunktId = res->FunktId = 0x6C4;
+    req->OpCode = 0x2;
+    res->OpCode = 0xC;
+    req->DataLen = payloadLength + HEADER_OFFSET;
+    res->DataLen = 4;
+    req->DataPtr = payload;
+    res->DataPtr = MCalloc(&priv->objList, res->DataLen, 1);
+    if (NULL == res->DataPtr) return Parse_MemoryError;
+
+    req->DataPtr[0] = 0x0F;
+    req->DataPtr[1] = 0x00;
+    req->DataPtr[2] = mode;
+    req->DataPtr[3] = blockCount;
+    req->DataPtr[4] = address;
+    req->DataPtr[5] = length;
+    req->DataPtr[6] = MISC_HB(timeout);
+    req->DataPtr[7] = MISC_LB(timeout);
+
+    res->DataPtr[0] = 0x0F;
+    res->DataPtr[1] = 0x00;
+    res->DataPtr[2] = address;
+    if (2 == mode)
+        res->DataPtr[3] = blockCount * length;
+    else
+        res->DataPtr[3] = length;
+    return Parse_Success;
+}
+
+static ParseResult_t ParseScriptPortRead(mxml_node_t *act, Ucs_Ns_Script_t *scr, PrivateData_t *priv)
+{
+    uint8_t address, length;
+    uint16_t timeout;
+    Ucs_Ns_ConfigMsg_t *req, *res;
+    assert(NULL != act && NULL != scr && NULL != priv);
+    if (!GetUInt8(act, I2C_SLAVE_ADDRESS, &address, true))
+        RETURN_ASSERT(Parse_XmlError);
+    if (!GetUInt8(act, I2C_PAYLOAD_LENGTH, &length, true))
+        RETURN_ASSERT(Parse_XmlError);
+    if (!GetUInt16(act, I2C_TIMEOUT, &timeout, false))
+        timeout = 100;
+    if (!FillScriptInitialValues(scr, priv))
+        RETURN_ASSERT(Parse_MemoryError);
+    req = scr->send_cmd;
+    res = scr->exp_result;
+    req->InstId = res->InstId = 1;
+    req->FunktId = res->FunktId = 0x6C3;
+    req->OpCode = 0x2;
+    res->OpCode = 0xC;
+    req->DataLen = 6;
+    res->DataLen = 4;
+    req->DataPtr = MCalloc(&priv->objList, req->DataLen, 1);
+    if (NULL == req->DataPtr) return Parse_MemoryError;
+    res->DataPtr = MCalloc(&priv->objList, res->DataLen, 1);
+    if (NULL == res->DataPtr) return Parse_MemoryError;
+
+    req->DataPtr[0] = 0x0F;
+    req->DataPtr[1] = 0x00;
+    req->DataPtr[2] = address;
+    req->DataPtr[3] = length;
+    req->DataPtr[4] = MISC_HB(timeout);
+    req->DataPtr[5] = MISC_LB(timeout);
+
+    res->DataPtr[0] = 0x0F;
+    res->DataPtr[1] = 0x00;
+    res->DataPtr[2] = address;
+    res->DataPtr[3] = length;
+    return Parse_Success;
+}
+
+static ParseResult_t ParseScriptPause(mxml_node_t *act, Ucs_Ns_Script_t *scr, PrivateData_t *priv)
+{
+    assert(NULL != act && NULL != priv);
+    if (!GetUInt16(act, PAUSE_MS, &priv->scriptData.pause, true))
+            RETURN_ASSERT(Parse_XmlError);
+    return Parse_Success;
+}
+
+static ParseResult_t ParseRoutes(UcsXmlVal_t *ucs, PrivateData_t *priv)
 {
     uint16_t routeAmount = 0;
-    struct UcsXmlRouteInfo *sourceRoute;
-    assert(NULL != v && NULL != vp);
-    //First: Count the amount of routes and allocate the correct amount
-    sourceRoute = vp->pRtLst;
+    struct UcsXmlRoute *sourceRoute;
+    assert(NULL != ucs && NULL != priv);
+    /*First: Count the amount of routes and allocate the correct amount*/
+    sourceRoute = priv->pRtLst;
     while (NULL != sourceRoute)
     {
-        if (!sourceRoute->isSource) //There can be more sinks than sources, so count them
+        if (!sourceRoute->isSource) /*There can be more sinks than sources, so count them*/
         {
             ++routeAmount;
         }
         sourceRoute = sourceRoute->next;
     }
     if (0 == routeAmount)
-        return Parse_Success; //Its okay to have no routes at all (e.g. MEP traffic only)
-    v->pRoutes = MCalloc(&vp->objList, routeAmount, sizeof(Ucs_Rm_Route_t));
-    if (NULL == v->pRoutes) return Parse_MemoryError;
+        return Parse_Success; /*Its okay to have no routes at all (e.g. MEP traffic only)*/
+    ucs->pRoutes = MCalloc(&priv->objList, routeAmount, sizeof(Ucs_Rm_Route_t));
+    if (NULL == ucs->pRoutes) RETURN_ASSERT(Parse_MemoryError);
     
-    //Second: Fill allocated structure now
-    sourceRoute = vp->pRtLst;
+    /*Second: Fill allocated structure now*/
+    sourceRoute = priv->pRtLst;
     while (NULL != sourceRoute)
     {
         if (sourceRoute->isSource)
         {
-            struct UcsXmlRouteInfo *sinkRoute = vp->pRtLst;
+            struct UcsXmlRoute *sinkRoute = priv->pRtLst;
             while (NULL != sinkRoute)
             {
-                if (sourceRoute != sinkRoute 
+                if (sourceRoute != sinkRoute
                     && !sinkRoute->isSource
                     && (0 == strncmp(sourceRoute->routeName, sinkRoute->routeName, sizeof(sourceRoute->routeName))))
                 {
-                    Ucs_Rm_Route_t *route = &v->pRoutes[v->routesSize++];
+                    Ucs_Rm_Route_t *route = &ucs->pRoutes[ucs->routesSize++];
                     route->source_endpoint_ptr = sourceRoute->ep;
                     route->sink_endpoint_ptr = sinkRoute->ep;
-                    route->active = 1;
+                    route->active = sinkRoute->isActive;
+                    route->route_id = sinkRoute->routeId;
                 }
                 sinkRoute = sinkRoute->next;
             }
         }
         sourceRoute = sourceRoute->next;
     }
+    assert(routeAmount == ucs->routesSize);
+    
+#ifdef DEBUG
+    /* Third perform checks when running in debug mode*/
+    {
+        Ucs_Xrm_ResourceType_t *job;
+        uint16_t i, j;
+        for (i = 0; i < routeAmount; i++)
+        {
+            Ucs_Rm_Route_t *route = &ucs->pRoutes[i];
+            assert(NULL != route->source_endpoint_ptr);
+            assert(NULL != route->sink_endpoint_ptr);
+            assert(NULL != route->source_endpoint_ptr->jobs_list_ptr);
+            assert(UCS_RM_EP_SOURCE == route->source_endpoint_ptr->endpoint_type);
+            assert(UCS_RM_EP_SINK == route->sink_endpoint_ptr->endpoint_type);
+            assert(NULL != route->source_endpoint_ptr->node_obj_ptr);
+            assert(NULL != route->sink_endpoint_ptr->node_obj_ptr);
+            assert(NULL != route->source_endpoint_ptr->node_obj_ptr->signature_ptr);
+            assert(NULL != route->sink_endpoint_ptr->node_obj_ptr->signature_ptr);
+            j = 0;
+            while((job = ((Ucs_Xrm_ResourceType_t *)route->source_endpoint_ptr->jobs_list_ptr[j])))
+            {
+                assert(UCS_XRM_RC_TYPE_QOS_CON >= *job);
+                ++j;
+            }
+            j = 0;
+            while((job = ((Ucs_Xrm_ResourceType_t *)route->sink_endpoint_ptr->jobs_list_ptr[j])))
+            {
+                assert(UCS_XRM_RC_TYPE_QOS_CON >= *job);
+                ++j;
+            }
+        }
+    }
+#endif
     return Parse_Success;
 }
