@@ -154,14 +154,12 @@ PUBLIC void UCSI_CB_OnMostError(void *pTag, uint16_t sourceAddr,
 
 
 
-// Callback when ever this instance wants to send a message to INIC.
-// BUGS?? Sample was returning true/false on error when integration layer expect a void [question from Fulup to Thorsten]
+/* Callback when ever this UNICENS wants to send a message to INIC. */
 PUBLIC void UCSI_CB_SendMostMessage(void *pTag, const uint8_t *pData, uint32_t len) {
 
     ucsContextT *ucsContext = (ucsContextT*) pTag;
     CdevData_t *cdevTx = &ucsContext->tx;
     uint32_t total = 0;
-
 
     if (NULL == pData || 0 == len) return;
 
@@ -175,13 +173,11 @@ PUBLIC void UCSI_CB_SendMostMessage(void *pTag, const uint8_t *pData, uint32_t l
         ssize_t written = write(cdevTx->fileHandle, &pData[total], (len - total));
         if (0 >= written)
         {
-            cdevTx->fileHandle = -1;
-            return;
+            /* Silently ignore write error (only occur in non-blocking mode) */
+            break;
         }
         total += (uint32_t) written;
     }
-
-    return;
 }
 
 /**
