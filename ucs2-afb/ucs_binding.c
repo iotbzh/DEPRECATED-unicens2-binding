@@ -112,13 +112,16 @@ PUBLIC void UCSI_CB_OnSetServiceTimer(void *pTag, uint16_t timeout) {
  * \param format - Zero terminated format string (following printf rules)
  * \param vargsCnt - Amount of parameters stored in "..."
  */
-void UCSI_CB_OnUserMessage(void *pTag, const char format[],
+void UCSI_CB_OnUserMessage(void *pTag, bool isError, const char format[],
     uint16_t vargsCnt, ...) {
-    //DEBUG (afbIface, format, args);
-    va_list args;
-    va_start (args, format);
-    vfprintf (stderr, format, args);
-    va_end(args);
+    va_list argptr;
+    char outbuf[300];
+    pTag = pTag;
+    va_start(argptr, vargsCnt);
+    vsprintf(outbuf, format, argptr);
+    va_end(argptr);
+    if (isError)
+        NOTICE (afbIface, outbuf);
 }
 
 // UCSI_Service cannot be call directly within Unicens context, need to reset stack through mainloop
@@ -137,26 +140,9 @@ PUBLIC void UCSI_CB_OnServiceRequired(void *pTag) {
    sd_event_add_time(afb_daemon_get_event_loop(afbIface->daemon), NULL, CLOCK_MONOTONIC, 0, 0, OnServiceRequiredCB, pTag);
 }
 
-
-/**
- * \brief Callback when ever a MOST error message was received.
- * \note This function must be implemented by the integrator
- * \param pTag - Pointer given by the integrator by UCSI_Init
- * \note All following parameters belong to the usual MOST message
- */
-PUBLIC void UCSI_CB_OnMostError(void *pTag, uint16_t sourceAddr,
-    uint8_t fblock, uint8_t inst, uint16_t function, uint8_t op,
-    const uint8_t *pPayload, uint32_t payloadLen) {
-
-    // Error to send to syslog
-    DEBUG (afbIface, "OnMostError source=0x%x", sourceAddr);
-}
-
-
-
 // Callback when ever this instance wants to send a message to INIC.
 // BUGS?? Sample was returning true/false on error when integration layer expect a void [question from Fulup to Thorsten]
-PUBLIC void UCSI_CB_SendMostMessage(void *pTag, const uint8_t *pData, uint32_t len) {
+PUBLIC void UCSI_CB_OnTxRequest(void *pTag, const uint8_t *pData, uint32_t len) {
 
     ucsContextT *ucsContext = (ucsContextT*) pTag;
     CdevData_t *cdevTx = &ucsContext->tx;
@@ -196,17 +182,12 @@ void UCSI_CB_OnStop(void *pTag) {
 
 }
 
-/**
- * \brief Callback on Unicens management results.
- * \note This function must be implemented by the integrator
- * \param pTag - Pointer given by the integrator by UCSI_Init
- * \param code - Result code
- * \param nodeAddress - Node address of the device causing this event
- * \param pNode - Pointer to node structure holding details of changed node
- */
-extern void UCSI_CB_OnMgrReport(void *pTag, Ucs_MgrReport_t code, uint16_t nodeAddress, Ucs_Rm_Node_t *pNode) {
-
-    DEBUG (afbIface, "OnMgrReport: Ucs_MgrReport_t=%d nodeAdresse=0x%x", code, nodeAddress);
+/** This callback will be raised, when ever an applicative message on the control channel arrived */
+void UCSI_CB_OnAmsMessageReceived(void *pTag)
+{
+	/* If not interested, just ignore this event.
+	   Otherwise UCSI_GetAmsMessage may now be called asynchronous (mainloop) to get the content. 
+	   Don't forget to call UCSI_ReleaseAmsMessage after that */
 }
 
 bool Cdev_Init(CdevData_t *d, const char *fileName, bool read, bool write)
@@ -251,7 +232,8 @@ int onReadCB (sd_event_source* src, int fileFd, uint32_t revents, void* pTag) {
     int ok;
 
     len = read (ucsContext->rx.fileHandle, &pBuffer, sizeof(pBuffer));
-
+    if (0 == len)
+        return 0;
     ok= UCSI_ProcessRxData(&ucsContext->ucsiData, pBuffer, (uint16_t)len);
     if (!ok) {
         DEBUG (afbIface, "Buffer overrun (not handle)");

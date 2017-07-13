@@ -1,26 +1,34 @@
-/*
- * Unicens Integration Helper Component
- *
- * Copyright (C) 2017 Microchip Technology Germany II GmbH & Co. KG
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
- * You may also obtain this software under a propriety license from Microchip.
- * Please contact Microchip for further information.
- *
- */
+/*------------------------------------------------------------------------------------------------*/
+/* Unicens Integration Helper Component                                                           */
+/* Copyright 2017, Microchip Technology Inc. and its subsidiaries.                                */
+/*                                                                                                */
+/* Redistribution and use in source and binary forms, with or without                             */
+/* modification, are permitted provided that the following conditions are met:                    */
+/*                                                                                                */
+/* 1. Redistributions of source code must retain the above copyright notice, this                 */
+/*    list of conditions and the following disclaimer.                                            */
+/*                                                                                                */
+/* 2. Redistributions in binary form must reproduce the above copyright notice,                   */
+/*    this list of conditions and the following disclaimer in the documentation                   */
+/*    and/or other materials provided with the distribution.                                      */
+/*                                                                                                */
+/* 3. Neither the name of the copyright holder nor the names of its                               */
+/*    contributors may be used to endorse or promote products derived from                        */
+/*    this software without specific prior written permission.                                    */
+/*                                                                                                */
+/* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"                    */
+/* AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE                      */
+/* IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE                 */
+/* DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE                   */
+/* FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL                     */
+/* DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR                     */
+/* SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER                     */
+/* CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,                  */
+/* OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE                  */
+/* OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.                           */
+/*------------------------------------------------------------------------------------------------*/
 #include <assert.h>
+#include <stdio.h>
 #include "ucs_interface.h"
 
 /************************************************************************/
@@ -58,10 +66,12 @@ static void OnUcsInitResult(Ucs_InitResult_t result, void *user_ptr);
 static void OnUcsStopResult(Ucs_StdResult_t result, void *user_ptr);
 static void OnUcsMgrReport(Ucs_MgrReport_t code, uint16_t node_address, Ucs_Rm_Node_t *node_ptr, void *user_ptr);
 static void OnUcsNsRun(Ucs_Rm_Node_t * node_ptr, Ucs_Ns_ResultCode_t result, void *ucs_user_ptr);
+static void OnUcsAmsRxMsgReceived(void *user_ptr);
 
 /************************************************************************/
 /* Public Function Implementations                                      */
 /************************************************************************/
+
 void UCSI_Init(UCSI_Data_t *my, void *pTag)
 {
     Ucs_Return_t result;
@@ -69,10 +79,10 @@ void UCSI_Init(UCSI_Data_t *my, void *pTag)
     memset(my, 0, sizeof(UCSI_Data_t));
     my->magic = MAGIC;
     my->tag = pTag;
-    my->UNICENS = Ucs_CreateInstance();
-    if (NULL == my->UNICENS)
+    my->unicens = Ucs_CreateInstance();
+    if (NULL == my->unicens)
     {
-        UCSI_CB_OnUserMessage(my->tag, "Can not instance a new version of UNICENS, "\
+        UCSI_CB_OnUserMessage(my->tag, true, "Can not instance a new version of UNICENS, "\
             "increase UCS_NUM_INSTANCES define", 0);
         assert(false);
         return;
@@ -80,7 +90,7 @@ void UCSI_Init(UCSI_Data_t *my, void *pTag)
     result = Ucs_SetDefaultConfig(&my->uniInitData);
     if(UCS_RET_SUCCESS != result)
     {
-        UCSI_CB_OnUserMessage(my->tag, "Can not set default values to Unicens config (result=0x%X)", 1, result);
+        UCSI_CB_OnUserMessage(my->tag, true, "Can not set default values to Unicens config (result=0x%X)", 1, result);
         assert(false);
         return;
     }
@@ -94,6 +104,7 @@ void UCSI_Init(UCSI_Data_t *my, void *pTag)
     my->uniInitData.general.set_application_timer_fptr = &OnUnicensAppTimer;
     my->uniInitData.general.debug_error_msg_fptr = &OnUnicensDebugErrorMsg;
     my->uniInitData.ams.enabled = ENABLE_AMS_LIB;
+    my->uniInitData.ams.rx.message_received_fptr = &OnUcsAmsRxMsgReceived;
 
     my->uniInitData.lld.lld_user_ptr = my;
     my->uniInitData.lld.start_fptr =  &OnLldCtrlStart;
@@ -134,16 +145,17 @@ bool UCSI_NewConfig(UCSI_Data_t *my, UcsXmlVal_t *ucsConfig) {
     return true;
 }
 
-bool UCSI_ProcessRxData(UCSI_Data_t *my, const uint8_t *pBuffer, uint16_t len)
+bool UCSI_ProcessRxData(UCSI_Data_t *my,
+    const uint8_t *pBuffer, uint16_t len)
 {
+    Ucs_Lld_RxMsg_t *msg = NULL;
     assert(MAGIC == my->magic);
     if (NULL == my->uniLld || NULL == my->uniLldHPtr) return false;
-    Ucs_Lld_RxMsg_t *msg = NULL;
     msg = my->uniLld->rx_allocate_fptr(my->uniLldHPtr, len);
     if (NULL == msg)
     {
-        //This may happen by definition, OnLldCtrlRxMsgAvailable()
-        //will be called, once buffers are available again
+        /*This may happen by definition, OnLldCtrlRxMsgAvailable()
+          will be called, once buffers are available again*/
         return false;
     }
     msg->data_size = len;
@@ -152,38 +164,38 @@ bool UCSI_ProcessRxData(UCSI_Data_t *my, const uint8_t *pBuffer, uint16_t len)
     return true;
 }
 
-
-void UCSI_Service(UCSI_Data_t *my) {
+void UCSI_Service(UCSI_Data_t *my)
+{
     UnicensCmdEntry_t *e;
-    bool popEntry = true; //Set to false in specific case, where function will callback asynchrony.
+    bool popEntry = true; /*Set to false in specific case, where function will callback asynchrony.*/
     assert(MAGIC == my->magic);
-    if (NULL != my->UNICENS && my->triggerService) {
+    if (NULL != my->unicens && my->triggerService) {
         my->triggerService = false;
-        Ucs_Service(my->UNICENS);
+        Ucs_Service(my->unicens);
     }
     if (NULL != my->currentCmd) return;
     my->currentCmd = e = (UnicensCmdEntry_t *)RB_GetReadPtr(&my->rb);
     if (NULL == e) return;
     switch (e->cmd) {
         case UnicensCmd_Init:
-            if (UCS_RET_SUCCESS == Ucs_Init(my->UNICENS, e->val.Init.init_ptr, OnUcsInitResult))
+            if (UCS_RET_SUCCESS == Ucs_Init(my->unicens, e->val.Init.init_ptr, OnUcsInitResult))
                 popEntry = false;
             else
-                UCSI_CB_OnUserMessage(my->tag, "Ucs_Init failed", 0);
+                UCSI_CB_OnUserMessage(my->tag, true, "Ucs_Init failed", 0);
             break;
         case UnicensCmd_Stop:
-            if (UCS_RET_SUCCESS == Ucs_Stop(my->UNICENS, OnUcsStopResult))
+            if (UCS_RET_SUCCESS == Ucs_Stop(my->unicens, OnUcsStopResult))
                 popEntry = false;
             else
-                UCSI_CB_OnUserMessage(my->tag, "Ucs_Stop failed", 0);
+                UCSI_CB_OnUserMessage(my->tag, true, "Ucs_Stop failed", 0);
             break;
         case UnicensCmd_RmSetRoute:
-            if (UCS_RET_SUCCESS != Ucs_Rm_SetRouteActive(my->UNICENS, e->val.RmSetRoute.routePtr, e->val.RmSetRoute.isActive))
-                UCSI_CB_OnUserMessage(my->tag, "Ucs_Rm_SetRouteActive failed", 0);
+            if (UCS_RET_SUCCESS != Ucs_Rm_SetRouteActive(my->unicens, e->val.RmSetRoute.routePtr, e->val.RmSetRoute.isActive))
+                UCSI_CB_OnUserMessage(my->tag, true, "Ucs_Rm_SetRouteActive failed", 0);
             break;
         case UnicensCmd_NsRun:
-            if (UCS_RET_SUCCESS != Ucs_Ns_Run(my->UNICENS, e->val.NsRun.node_ptr, OnUcsNsRun))
-                UCSI_CB_OnUserMessage(my->tag, "Ucs_Ns_Run failed", 0);
+            if (UCS_RET_SUCCESS != Ucs_Ns_Run(my->unicens, e->val.NsRun.node_ptr, OnUcsNsRun))
+                UCSI_CB_OnUserMessage(my->tag, true, "Ucs_Ns_Run failed", 0);
             break;
         default:
             assert(false);
@@ -199,8 +211,72 @@ void UCSI_Service(UCSI_Data_t *my) {
 void UCSI_Timeout(UCSI_Data_t *my)
 {
     assert(MAGIC == my->magic);
-    if (NULL == my->UNICENS) return;
-    Ucs_ReportTimeout(my->UNICENS);
+    if (NULL == my->unicens) return;
+    Ucs_ReportTimeout(my->unicens);
+}
+
+bool UCSI_SendAmsMessage(UCSI_Data_t *my, uint16_t msgId, uint16_t targetAddress, uint8_t *pPayload, uint32_t payloadLen)
+{
+    Ucs_AmsTx_Msg_t *msg;
+    Ucs_Return_t result;
+    assert(MAGIC == my->magic);
+    if (NULL == my->unicens) return false;
+    msg = Ucs_AmsTx_AllocMsg(my->unicens, payloadLen);
+    if (NULL == msg) return false;
+    if (0 != payloadLen)
+    {
+        assert(NULL != msg->data_ptr);
+        memcpy(msg->data_ptr, pPayload, payloadLen);
+    }
+    msg->custom_info_ptr = NULL;
+    msg->data_size = payloadLen;
+    msg->destination_address = targetAddress;
+    msg->llrbc = 10;
+    msg->msg_id = msgId;
+    result = Ucs_AmsTx_SendMsg(my->unicens, msg, NULL);
+    if (UCS_RET_SUCCESS != result)
+        Ucs_AmsTx_FreeUnusedMsg(my->unicens, msg);
+    return UCS_RET_SUCCESS == result;
+}
+
+bool UCSI_GetAmsMessage(UCSI_Data_t *my, uint16_t *pMsgId, uint16_t *pSourceAddress, uint8_t **pPayload, uint32_t *pPayloadLen)
+{
+    Ucs_AmsRx_Msg_t *msg;
+    assert(MAGIC == my->magic);
+    if (NULL == my->unicens || NULL == pPayload || NULL == pPayloadLen) return false;
+    msg = Ucs_AmsRx_PeekMsg(my->unicens);
+    if (NULL == msg) return false;
+    *pMsgId = msg->msg_id;
+    *pSourceAddress = msg->source_address;
+    *pPayload = msg->data_ptr;
+    *pPayloadLen = msg->data_size;
+    return true;
+}
+
+void UCSI_ReleaseAmsMessage(UCSI_Data_t *my)
+{
+    assert(MAGIC == my->magic);
+    if (NULL == my->unicens) return;
+    Ucs_AmsRx_ReleaseMsg(my->unicens);
+}
+
+bool UCSI_SetRouteActive(UCSI_Data_t *my, uint16_t routeId, bool isActive)
+{
+    uint16_t i;
+    UnicensCmdEntry_t entry;
+    assert(MAGIC == my->magic);
+    if (NULL == my || NULL == my->uniInitData.mgr.routes_list_ptr) return false;
+    for (i = 0; i < my->uniInitData.mgr.routes_list_size; i++)
+    {
+        Ucs_Rm_Route_t *route = &my->uniInitData.mgr.routes_list_ptr[i];
+        if (route->route_id != routeId)
+            continue;
+        entry.cmd = UnicensCmd_RmSetRoute;
+        entry.val.RmSetRoute.routePtr = route;
+        entry.val.RmSetRoute.isActive = isActive;
+        return EnqueueCommand(my, &entry);
+    }
+    return false;
 }
 
 /************************************************************************/
@@ -217,7 +293,7 @@ static bool EnqueueCommand(UCSI_Data_t *my, UnicensCmdEntry_t *cmd)
     e = RB_GetWritePtr(&my->rb);
     if (NULL == e)
     {
-        UCSI_CB_OnUserMessage(my->tag, "Could not enqueue command. Increase CMD_QUEUE_LEN define", 0);
+        UCSI_CB_OnUserMessage(my->tag, true, "Could not enqueue command. Increase CMD_QUEUE_LEN define", 0);
         return false;
     }
     memcpy(e, cmd, sizeof(UnicensCmdEntry_t));
@@ -235,14 +311,14 @@ static void OnCommandExecuted(UCSI_Data_t *my, UnicensCmd_t cmd)
     }
     if (NULL == my->currentCmd)
     {
-        UCSI_CB_OnUserMessage(my->tag, "OnUniCommandExecuted was called, but no "\
+        UCSI_CB_OnUserMessage(my->tag, true, "OnUniCommandExecuted was called, but no "\
             "command is in queue", 0);
         assert(false);
         return;
     }
     if (my->currentCmd->cmd != cmd)
     {
-        UCSI_CB_OnUserMessage(my->tag, "OnUniCommandExecuted was called with "\
+        UCSI_CB_OnUserMessage(my->tag, true, "OnUniCommandExecuted was called with "\
             "wrong command (Expected=0x%X, Got=0x%X", 2, my->currentCmd->cmd, cmd);
         assert(false);
         return;
@@ -322,10 +398,14 @@ static void OnUnicensService( void *user_ptr )
 
 static void OnUnicensError( Ucs_Error_t error_code, void *user_ptr )
 {
-    error_code = error_code;
+    UnicensCmdEntry_t e;
     UCSI_Data_t *my = (UCSI_Data_t *)user_ptr;
+    error_code = error_code;
     assert(MAGIC == my->magic);
-    UCSI_CB_OnUserMessage(my->tag, "Unicens general error, code=0x%X", 1, error_code);
+    UCSI_CB_OnUserMessage(my->tag, true, "Unicens general error, code=0x%X, restarting", 1, error_code);
+    e.cmd = UnicensCmd_Init;
+    e.val.Init.init_ptr = &my->uniInitData;
+    EnqueueCommand(my, &e);
 }
 
 static void OnUnicensAppTimer( uint16_t timeout, void *user_ptr )
@@ -337,10 +417,20 @@ static void OnUnicensAppTimer( uint16_t timeout, void *user_ptr )
 
 static void OnUnicensDebugErrorMsg(Msg_MostTel_t *m, void *user_ptr)
 {
+    char buffer[100];
+    char val[5];
+    uint8_t i;
     UCSI_Data_t *my = (UCSI_Data_t *)user_ptr;
     assert(MAGIC == my->magic);
-    UCSI_CB_OnMostError(my->tag, m->source_addr, m->id.fblock_id, m->id.instance_id,
-        m->id.function_id, m->id.op_type, m->tel.tel_data_ptr, m->tel.tel_len);
+    buffer[0] = '\0';
+    for (i = 0; NULL != m->tel.tel_data_ptr && i < m->tel.tel_len; i++)
+    {
+        snprintf(val, sizeof(val), "%02X ", m->tel.tel_data_ptr[i]);
+        strcat(buffer, val);
+    }
+    UCSI_CB_OnUserMessage(my->tag, true, "Received error message, source=%x, %X.%X.%X.%X, [ %s ]",
+        6, m->source_addr, m->id.fblock_id, m->id.instance_id,
+        m->id.function_id, m->id.op_type, buffer);
 }
 
 static void OnLldCtrlStart( Ucs_Lld_Api_t* api_ptr, void *inst_ptr, void *lld_user_ptr )
@@ -368,11 +458,12 @@ static void OnLldCtrlRxMsgAvailable( void *lld_user_ptr )
 
 static void OnLldCtrlTxTransmitC( Ucs_Lld_TxMsg_t *msg_ptr, void *lld_user_ptr )
 {
-    UCSI_Data_t *my = (UCSI_Data_t *)lld_user_ptr;
-    assert(MAGIC == my->magic);
+    UCSI_Data_t *my;
+    Ucs_Mem_Buffer_t * buf_ptr;
     uint8_t buffer[BOARD_PMS_TX_SIZE];
     uint32_t bufferPos = 0;
-    Ucs_Mem_Buffer_t * buf_ptr;
+    my = (UCSI_Data_t *)lld_user_ptr;
+    assert(MAGIC == my->magic);
     if (NULL == msg_ptr || NULL == my || NULL == my->uniLld || NULL == my->uniLldHPtr)
     {
         assert(false);
@@ -382,7 +473,7 @@ static void OnLldCtrlTxTransmitC( Ucs_Lld_TxMsg_t *msg_ptr, void *lld_user_ptr )
     {
         if (buf_ptr->data_size + bufferPos > sizeof(buffer))
         {
-            UCSI_CB_OnUserMessage(my->tag, "TX buffer is too small, increase " \
+            UCSI_CB_OnUserMessage(my->tag, true, "TX buffer is too small, increase " \
                 "BOARD_PMS_TX_SIZE define (%lu > %lu)", 2, buf_ptr->data_size + bufferPos, sizeof(buffer));
             my->uniLld->tx_release_fptr(my->uniLldHPtr, msg_ptr);
             return;
@@ -392,12 +483,12 @@ static void OnLldCtrlTxTransmitC( Ucs_Lld_TxMsg_t *msg_ptr, void *lld_user_ptr )
     }
     assert(bufferPos == msg_ptr->memory_ptr->total_size);
     my->uniLld->tx_release_fptr(my->uniLldHPtr, msg_ptr);
-    UCSI_CB_SendMostMessage(my->tag, buffer, bufferPos);
+    UCSI_CB_OnTxRequest(my->tag, buffer, bufferPos);
 }
 
 static void OnUnicensRoutingResult(Ucs_Rm_Route_t* route_ptr, Ucs_Rm_RouteInfos_t route_infos, void *user_ptr)
 {
-    //TODO: implement
+    /*TODO: implement*/
     route_ptr = route_ptr;
     route_infos = route_infos;
     user_ptr = user_ptr;
@@ -407,7 +498,7 @@ static void OnUnicensMostPortStatus(uint16_t most_port_handle,
     Ucs_Most_PortAvail_t availability, Ucs_Most_PortAvailInfo_t avail_info,
     uint16_t free_streaming_bw, void* user_ptr)
 {
-    //TODO: implement
+    /*TODO: implement*/
     most_port_handle = most_port_handle;
     availability = availability;
     avail_info = avail_info;
@@ -419,6 +510,9 @@ static void OnUnicensDebugXrmResources(Ucs_Xrm_ResourceType_t resource_type,
     Ucs_Xrm_ResObject_t *resource_ptr, Ucs_Xrm_ResourceInfos_t resource_infos,
     Ucs_Rm_EndPoint_t *endpoint_inst_ptr, void *user_ptr)
 {
+    char *msg = NULL;
+    UCSI_Data_t *my;
+    uint16_t adr = 0xFFFF;
 #ifndef DEBUG_XRM
     resource_type = resource_type;
     resource_ptr = resource_ptr;
@@ -427,11 +521,9 @@ static void OnUnicensDebugXrmResources(Ucs_Xrm_ResourceType_t resource_type,
     user_ptr = user_ptr;
 #else
     endpoint_inst_ptr = endpoint_inst_ptr;
-    UCSI_Data_t *my = (UCSI_Data_t *)user_ptr;
+    my = (UCSI_Data_t *)user_ptr;
     assert(MAGIC == my->magic);
     if (NULL == resource_ptr) return;
-    char *msg = NULL;
-    uint16_t adr = 0xFFFF;
     if (endpoint_inst_ptr && endpoint_inst_ptr->node_obj_ptr &&
             endpoint_inst_ptr->node_obj_ptr->signature_ptr)
         adr = endpoint_inst_ptr->node_obj_ptr->signature_ptr->node_address;
@@ -456,7 +548,7 @@ static void OnUnicensDebugXrmResources(Ucs_Xrm_ResourceType_t resource_type,
         {
             Ucs_Xrm_MostSocket_t *ms = (Ucs_Xrm_MostSocket_t *)resource_ptr;
             assert(ms->resource_type == resource_type);
-            UCSI_CB_OnUserMessage(my->tag, "Xrm-Debug (0x%03X): MOST socket %s, handle=%04X, "\
+            UCSI_CB_OnUserMessage(my->tag, false, "Xrm-Debug (0x%03X): MOST socket %s, handle=%04X, "\
                 "direction=%d, type=%d, bandwidth=%d", 6, adr, msg, ms->most_port_handle,
                 ms->direction, ms->data_type, ms->bandwidth);
             break;
@@ -465,7 +557,7 @@ static void OnUnicensDebugXrmResources(Ucs_Xrm_ResourceType_t resource_type,
         {
             Ucs_Xrm_MlbPort_t *m = (Ucs_Xrm_MlbPort_t *)resource_ptr;
             assert(m->resource_type == resource_type);
-            UCSI_CB_OnUserMessage(my->tag, "Xrm-Debug (0x%03X): MLB port %s, index=%d, clock=%d", 4,
+            UCSI_CB_OnUserMessage(my->tag, false, "Xrm-Debug (0x%03X): MLB port %s, index=%d, clock=%d", 4,
                 adr, msg, m->index, m->clock_config);
             break;
         }
@@ -473,7 +565,7 @@ static void OnUnicensDebugXrmResources(Ucs_Xrm_ResourceType_t resource_type,
         {
             Ucs_Xrm_MlbSocket_t *m = (Ucs_Xrm_MlbSocket_t *)resource_ptr;
             assert(m->resource_type == resource_type);
-            UCSI_CB_OnUserMessage(my->tag, "Xrm-Debug (0x%03X): MLB socket %s, direction=%d, type=%d,"\
+            UCSI_CB_OnUserMessage(my->tag, false, "Xrm-Debug (0x%03X): MLB socket %s, direction=%d, type=%d,"\
                 " bandwidth=%d, channel=%d", 6, adr, msg, m->direction, m->data_type,
                 m->bandwidth, m->channel_address);
             break;
@@ -482,7 +574,7 @@ static void OnUnicensDebugXrmResources(Ucs_Xrm_ResourceType_t resource_type,
         {
             Ucs_Xrm_UsbPort_t *m = (Ucs_Xrm_UsbPort_t *)resource_ptr;
             assert(m->resource_type == resource_type);
-            UCSI_CB_OnUserMessage(my->tag, "Xrm-Debug (0x%03X): USB port %s, in-cnt=%d, out-cnt=%d", 4,
+            UCSI_CB_OnUserMessage(my->tag, false, "Xrm-Debug (0x%03X): USB port %s, in-cnt=%d, out-cnt=%d", 4,
                 adr, msg, m->streaming_if_ep_in_count, m->streaming_if_ep_out_count);
             break;
         }
@@ -490,7 +582,7 @@ static void OnUnicensDebugXrmResources(Ucs_Xrm_ResourceType_t resource_type,
         {
             Ucs_Xrm_UsbSocket_t *m = (Ucs_Xrm_UsbSocket_t *)resource_ptr;
             assert(m->resource_type == resource_type);
-            UCSI_CB_OnUserMessage(my->tag, "Xrm-Debug (0x%03X): USB socket %s, direction=%d, type=%d," \
+            UCSI_CB_OnUserMessage(my->tag, false, "Xrm-Debug (0x%03X): USB socket %s, direction=%d, type=%d," \
                 " ep-addr=%02X, frames=%d", 6, adr, msg, m->direction, m->data_type,
                 m->end_point_addr, m->frames_per_transfer);
             break;
@@ -499,7 +591,7 @@ static void OnUnicensDebugXrmResources(Ucs_Xrm_ResourceType_t resource_type,
         {
             Ucs_Xrm_StrmPort_t *m = (Ucs_Xrm_StrmPort_t *)resource_ptr;
             assert(m->resource_type == resource_type);
-            UCSI_CB_OnUserMessage(my->tag, "Xrm-Debug (0x%03X): I2S port %s, index=%d, clock=%d, "\
+            UCSI_CB_OnUserMessage(my->tag, false, "Xrm-Debug (0x%03X): I2S port %s, index=%d, clock=%d, "\
                 "align=%d", 5, adr, msg, m->index, m->clock_config, m->data_alignment);
             break;
         }
@@ -507,7 +599,7 @@ static void OnUnicensDebugXrmResources(Ucs_Xrm_ResourceType_t resource_type,
         {
             Ucs_Xrm_StrmSocket_t *m = (Ucs_Xrm_StrmSocket_t *)resource_ptr;
             assert(m->resource_type == resource_type);
-            UCSI_CB_OnUserMessage(my->tag, "Xrm-Debug (0x%03X): I2S socket %s, direction=%d, type=%d"\
+            UCSI_CB_OnUserMessage(my->tag, false, "Xrm-Debug (0x%03X): I2S socket %s, direction=%d, type=%d"\
                 ", bandwidth=%d, pin=%d", 6, adr, msg, m->direction, m->data_type,
                 m->bandwidth, m->stream_pin_id);
             break;
@@ -516,7 +608,7 @@ static void OnUnicensDebugXrmResources(Ucs_Xrm_ResourceType_t resource_type,
         {
             Ucs_Xrm_SyncCon_t *m = (Ucs_Xrm_SyncCon_t *)resource_ptr;
             assert(m->resource_type == resource_type);
-            UCSI_CB_OnUserMessage(my->tag, "Xrm-Debug (0x%03X): Sync connection %s, mute=%d, "\
+            UCSI_CB_OnUserMessage(my->tag, false, "Xrm-Debug (0x%03X): Sync connection %s, mute=%d, "\
                 "offset=%d", 4, adr, msg, m->mute_mode, m->offset);
             break;
         }
@@ -524,7 +616,7 @@ static void OnUnicensDebugXrmResources(Ucs_Xrm_ResourceType_t resource_type,
         {
             Ucs_Xrm_Combiner_t *m = (Ucs_Xrm_Combiner_t *)resource_ptr;
             assert(m->resource_type == resource_type);
-            UCSI_CB_OnUserMessage(my->tag, "Xrm-Debug (0x%03X): Combiner %s, bytes per frame=%d",
+            UCSI_CB_OnUserMessage(my->tag, false, "Xrm-Debug (0x%03X): Combiner %s, bytes per frame=%d",
                 3, adr, msg, m->bytes_per_frame);
             break;
         }
@@ -532,7 +624,7 @@ static void OnUnicensDebugXrmResources(Ucs_Xrm_ResourceType_t resource_type,
         {
             Ucs_Xrm_Splitter_t *m = (Ucs_Xrm_Splitter_t *)resource_ptr;
             assert(m->resource_type == resource_type);
-            UCSI_CB_OnUserMessage(my->tag, "Xrm-Debug (0x%03X): Splitter %s, bytes per frame=%d",
+            UCSI_CB_OnUserMessage(my->tag, false, "Xrm-Debug (0x%03X): Splitter %s, bytes per frame=%d",
                 3, adr, msg, m->bytes_per_frame);
             break;
         }
@@ -540,12 +632,12 @@ static void OnUnicensDebugXrmResources(Ucs_Xrm_ResourceType_t resource_type,
         {
             Ucs_Xrm_AvpCon_t *m = (Ucs_Xrm_AvpCon_t *)resource_ptr;
             assert(m->resource_type == resource_type);
-            UCSI_CB_OnUserMessage(my->tag, "Xrm-Debug (0x%03X): Isoc-AVP connection %s, packetSize=%d",
+            UCSI_CB_OnUserMessage(my->tag, false, "Xrm-Debug (0x%03X): Isoc-AVP connection %s, packetSize=%d",
                 3, adr, msg, m->isoc_packet_size);
             break;
         }
         default:
-        UCSI_CB_OnUserMessage(my->tag, "Xrm-Debug (0x%03X): Unknown type=%d %s", 3 , adr, resource_type, msg);
+        UCSI_CB_OnUserMessage(my->tag, true, "Xrm-Debug (0x%03X): Unknown type=%d %s", 3 , adr, resource_type, msg);
     }
 #endif
 }
@@ -559,7 +651,7 @@ static void OnUcsInitResult(Ucs_InitResult_t result, void *user_ptr)
     OnCommandExecuted(my, UnicensCmd_Init);
     if (!my->initialized)
     {
-        UCSI_CB_OnUserMessage(my->tag, "UcsInitResult reported error (0x%X), restarting...", 1, result);
+        UCSI_CB_OnUserMessage(my->tag, true, "UcsInitResult reported error (0x%X), restarting...", 1, result);
         e.cmd = UnicensCmd_Init;
         e.val.Init.init_ptr = &my->uniInitData;
         EnqueueCommand(my, &e);
@@ -568,8 +660,8 @@ static void OnUcsInitResult(Ucs_InitResult_t result, void *user_ptr)
 
 static void OnUcsStopResult(Ucs_StdResult_t result, void *user_ptr)
 {
-    result = result; //TODO: check error case
     UCSI_Data_t *my = (UCSI_Data_t *)user_ptr;
+    result = result; /*TODO: check error case*/
     assert(MAGIC == my->magic);
     my->initialized = false;
     OnCommandExecuted(my, UnicensCmd_Stop);
@@ -587,22 +679,47 @@ static void OnUcsMgrReport(Ucs_MgrReport_t code, uint16_t node_address, Ucs_Rm_N
         e.val.NsRun.node_ptr = node_ptr;
         EnqueueCommand(my, &e);
     }
-    UCSI_CB_OnMgrReport(my->tag, code, node_address, node_ptr);
+    switch (code)
+    {
+    case UCS_MGR_REP_IGNORED_UNKNOWN:
+        UCSI_CB_OnUserMessage(my->tag, false, "Node=%X: Ignored, because unknown", 1, node_address);
+        break;
+    case UCS_MGR_REP_IGNORED_DUPLICATE:
+        UCSI_CB_OnUserMessage(my->tag, true, "Node=%X: Ignored, because duplicated", 1, node_address);
+        break;
+    case UCS_MGR_REP_AVAILABLE:
+        UCSI_CB_OnUserMessage(my->tag, false, "Node=%X: Available", 1, node_address);
+        break;
+    case UCS_MGR_REP_NOT_AVAILABLE:
+        UCSI_CB_OnUserMessage(my->tag, false, "Node=%X: Not available", 1, node_address);
+        break;
+    default:
+        UCSI_CB_OnUserMessage(my->tag, true, "Node=%X: unknown code", 1, node_address);
+        break;
+    }
 }
 
 static void OnUcsNsRun(Ucs_Rm_Node_t * node_ptr, Ucs_Ns_ResultCode_t result, void *ucs_user_ptr)
 {
+    UCSI_Data_t *my;
 #ifndef DEBUG_XRM
     node_ptr = node_ptr;
     result = result;
     ucs_user_ptr;
 #else
-    UCSI_Data_t *my = (UCSI_Data_t *)ucs_user_ptr;
+    my = (UCSI_Data_t *)ucs_user_ptr;
     assert(MAGIC == my->magic);
-    UCSI_CB_OnUserMessage(my->tag, "OnUcsNsRun (%03X): script executed %s",
+    UCSI_CB_OnUserMessage(my->tag, false, "OnUcsNsRun (%03X): script executed %s",
         2, node_ptr->signature_ptr->node_address,
         (UCS_NS_RES_SUCCESS == result ? "succeeded" : "false"));
 #endif
+}
+
+static void OnUcsAmsRxMsgReceived(void *user_ptr)
+{
+    UCSI_Data_t *my = (UCSI_Data_t *)user_ptr;
+    assert(MAGIC == my->magic);
+    UCSI_CB_OnAmsMessageReceived(my->tag);
 }
 
 /*----------------------------------------
@@ -614,34 +731,35 @@ static void OnUcsNsRun(Ucs_Rm_Node_t * node_ptr, Ucs_Ns_ResultCode_t result, voi
 #define TRACE_BUFFER_SZ 200
 void App_TraceError(void *ucs_user_ptr, const char module_str[], const char entry_str[], uint16_t vargs_cnt, ...)
 {
-    void *tag = NULL;
+    va_list argptr;
+    char outbuf[TRACE_BUFFER_SZ];
+    void *tag;
     UCSI_Data_t *my = (UCSI_Data_t *)ucs_user_ptr;
     if (my)
     {
         assert(MAGIC == my->magic);
         tag = my->tag;
     }
-    char outbuf[TRACE_BUFFER_SZ];
-    va_list argptr;
     va_start(argptr, vargs_cnt);
     vsprintf(outbuf, entry_str, argptr);
     va_end(argptr);
-    UCSI_CB_OnUserMessage(tag, "Error | %s | %s", 2, module_str, outbuf);
+    UCSI_CB_OnUserMessage(tag, true, "Error | %s | %s", 2, module_str, outbuf);
 }
+
 void App_TraceInfo(void *ucs_user_ptr, const char module_str[], const char entry_str[], uint16_t vargs_cnt, ...)
 {
-    void *tag = NULL;
+    va_list argptr;
+    char outbuf[TRACE_BUFFER_SZ];
+    void *tag;
     UCSI_Data_t *my = (UCSI_Data_t *)ucs_user_ptr;
     if (my)
     {
         assert(MAGIC == my->magic);
         tag = my->tag;
     }
-    char outbuf[TRACE_BUFFER_SZ];
-    va_list argptr;
     va_start(argptr, vargs_cnt);
     vsprintf(outbuf, entry_str, argptr);
     va_end(argptr);
-    UCSI_CB_OnUserMessage(tag, "Info | %s | %s", 2, module_str, outbuf);
+    UCSI_CB_OnUserMessage(tag, false, "Info | %s | %s", 2, module_str, outbuf);
 }
 #endif
