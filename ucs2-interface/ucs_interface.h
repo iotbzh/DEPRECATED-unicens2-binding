@@ -1,25 +1,32 @@
-/*
- * Unicens Integration Helper Component
- *
- * Copyright (C) 2017 Microchip Technology Germany II GmbH & Co. KG
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
- * You may also obtain this software under a propriety license from Microchip.
- * Please contact Microchip for further information.
- *
- */
+/*------------------------------------------------------------------------------------------------*/
+/* Unicens Integration Helper Component                                                           */
+/* Copyright 2017, Microchip Technology Inc. and its subsidiaries.                                */
+/*                                                                                                */
+/* Redistribution and use in source and binary forms, with or without                             */
+/* modification, are permitted provided that the following conditions are met:                    */
+/*                                                                                                */
+/* 1. Redistributions of source code must retain the above copyright notice, this                 */
+/*    list of conditions and the following disclaimer.                                            */
+/*                                                                                                */
+/* 2. Redistributions in binary form must reproduce the above copyright notice,                   */
+/*    this list of conditions and the following disclaimer in the documentation                   */
+/*    and/or other materials provided with the distribution.                                      */
+/*                                                                                                */
+/* 3. Neither the name of the copyright holder nor the names of its                               */
+/*    contributors may be used to endorse or promote products derived from                        */
+/*    this software without specific prior written permission.                                    */
+/*                                                                                                */
+/* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"                    */
+/* AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE                      */
+/* IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE                 */
+/* DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE                   */
+/* FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL                     */
+/* DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR                     */
+/* SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER                     */
+/* CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,                  */
+/* OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE                  */
+/* OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.                           */
+/*------------------------------------------------------------------------------------------------*/
 #ifndef UCSI_H_
 #define UCSI_H_
 
@@ -105,6 +112,61 @@ void UCSI_Service(UCSI_Data_t *pPriv);
  */
 void UCSI_Timeout(UCSI_Data_t *pPriv);
 
+/**
+ * \brief Sends an AMS message to the control channel
+ *
+ * \note Call this function only from single context (not from ISR)
+ *
+ * \param pPriv - private data section of this instance
+ * \param msgId - The AMS message id
+ * \param targetAddress - The node / group target address
+ * \param pPayload - The AMS payload to be sent
+ * \param payloadLen - The length of the AMS payload
+ *
+ * \return true, if operation was successful. false if the message could not be sent.
+ */
+bool UCSI_SendAmsMessage(UCSI_Data_t *my, uint16_t msgId, uint16_t targetAddress, uint8_t *pPayload, uint32_t payloadLen);
+
+/**
+ * \brief Gets the queued AMS message from Unicens stack
+ *
+ * \note Call this function only from single context (not from ISR)
+ * \note This function may be called cyclic or when UCSI_CB_OnAmsMessageReceived was raised
+ *
+ * \param pPriv - private data section of this instance
+ * \param pMsgId - The received AMS message id will be written to this pointer
+ * \param pSourceAddress - The received AMS source address will be written to this pointer
+ * \param pPayload - The received AMS payload will be written to this pointer
+ * \param pPayloadLen - The received AMS payload length will be written to this pointer
+ *
+ * \return true, if operation was successful. false if no message got be retrieved.
+ */
+bool UCSI_GetAmsMessage(UCSI_Data_t *my, uint16_t *pMsgId, uint16_t *pSourceAddress, uint8_t **pPayload, uint32_t *pPayloadLen);
+
+/**
+ * \brief Releases the message memory returned by UCSI_GetAmsMessage.
+ *
+ * \note Call this function only from single context (not from ISR)
+ * \note This function must be called when the data of UCSI_GetAmsMessage has been processed.
+ *       If this function is not called, UCSI_GetAmsMessage will return always the reference to the same data.
+ * \note UCSI_Service may also free the data returned by UCSI_GetAmsMessage!
+ *
+ * \param pPriv - private data section of this instance
+ */
+void UCSI_ReleaseAmsMessage(UCSI_Data_t *my);
+
+/**
+ * \brief Enables or disables a route by the given routeId
+ * \note Call this function only from single context (not from ISR)
+ *
+ * \param pPriv - private data section of this instance
+ * \param routeId - identifier as given in XML file along with MOST socket
+ * \param isActive - true, route will become active. false, route will be deallocated
+ * 
+ * \return true, if route was found and the specific command was enqueued to Unicens.
+ */
+bool UCSI_SetRouteActive(UCSI_Data_t *pPriv, uint16_t routeId, bool isActive);
+
 /*>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>*/
 /*                        CALLBACK SECTION                              */
 /*>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>*/
@@ -134,10 +196,11 @@ extern void UCSI_CB_OnSetServiceTimer(void *pTag, uint16_t timeout);
  *        This can be error events or when enabled also debug messages.
  * \note This function must be implemented by the integrator
  * \param pTag - Pointer given by the integrator by UCSI_Init
+ * \param isError - true, if this message is an important error message. false, user/debug message, not important.
  * \param format - Zero terminated format string (following printf rules)
  * \param vargsCnt - Amount of parameters stored in "..."
  */
-extern void UCSI_CB_OnUserMessage(void *pTag, const char format[],
+extern void UCSI_CB_OnUserMessage(void *pTag, bool isError, const char format[],
     uint16_t vargsCnt, ...);
 
 
@@ -149,26 +212,14 @@ extern void UCSI_CB_OnUserMessage(void *pTag, const char format[],
  */
 extern void UCSI_CB_OnServiceRequired(void *pTag);
 
-
 /**
- * \brief Callback when ever a MOST error message was received.
- * \note This function must be implemented by the integrator
- * \param pTag - Pointer given by the integrator by UCSI_Init
- * \note All following parameters belong to the usual MOST message
- */
-extern void UCSI_CB_OnMostError(void *pTag, uint16_t sourceAddr,
-    uint8_t fblock, uint8_t inst, uint16_t function, uint8_t op,
-    const uint8_t *pPayload, uint32_t payloadLen);
-
-
-/**
- * \brief Callback when ever this instance wants to send a message to INIC.
+ * \brief Callback when ever this instance of Unicens wants to send control data to the LLD.
  * \note This function must be implemented by the integrator
  * \param pTag - Pointer given by the integrator by UCSI_Init
  * \param pPayload - Byte array to be sent on the INIC control channel
  * \param payloadLen - Length of pPayload in Byte
  */
-extern void UCSI_CB_SendMostMessage(void *pTag,
+extern void UCSI_CB_OnTxRequest(void *pTag,
     const uint8_t *pPayload, uint32_t payloadLen);
 
 /**
@@ -181,14 +232,12 @@ extern void UCSI_CB_SendMostMessage(void *pTag,
 extern void UCSI_CB_OnStop(void *pTag);
 
 /**
- * \brief Callback on Unicens management results.
+ * \brief Callback when Unicens instance has received an AMS message
  * \note This function must be implemented by the integrator
+ * \note After this callback, call UCSI_GetAmsMessage indirect by setting a flag
  * \param pTag - Pointer given by the integrator by UCSI_Init
- * \param code - Result code
- * \param nodeAddress - Node address of the device causing this event
- * \param pNode - Pointer to node structure holding details of changed node
  */
-extern void UCSI_CB_OnMgrReport(void *pTag, Ucs_MgrReport_t code, uint16_t nodeAddress, Ucs_Rm_Node_t *pNode);
+extern void UCSI_CB_OnAmsMessageReceived(void *pTag);
 
 #ifdef __cplusplus
 }

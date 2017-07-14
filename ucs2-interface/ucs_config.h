@@ -1,25 +1,32 @@
-/*
- * Unicens Integration Helper Component
- *
- * Copyright (C) 2017 Microchip Technology Germany II GmbH & Co. KG
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
- * You may also obtain this software under a propriety license from Microchip.
- * Please contact Microchip for further information.
- *
- */
+/*------------------------------------------------------------------------------------------------*/
+/* Unicens Integration Helper Component                                                           */
+/* Copyright 2017, Microchip Technology Inc. and its subsidiaries.                                */
+/*                                                                                                */
+/* Redistribution and use in source and binary forms, with or without                             */
+/* modification, are permitted provided that the following conditions are met:                    */
+/*                                                                                                */
+/* 1. Redistributions of source code must retain the above copyright notice, this                 */
+/*    list of conditions and the following disclaimer.                                            */
+/*                                                                                                */
+/* 2. Redistributions in binary form must reproduce the above copyright notice,                   */
+/*    this list of conditions and the following disclaimer in the documentation                   */
+/*    and/or other materials provided with the distribution.                                      */
+/*                                                                                                */
+/* 3. Neither the name of the copyright holder nor the names of its                               */
+/*    contributors may be used to endorse or promote products derived from                        */
+/*    this software without specific prior written permission.                                    */
+/*                                                                                                */
+/* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"                    */
+/* AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE                      */
+/* IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE                 */
+/* DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE                   */
+/* FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL                     */
+/* DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR                     */
+/* SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER                     */
+/* CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,                  */
+/* OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE                  */
+/* OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.                           */
+/*------------------------------------------------------------------------------------------------*/
 #ifndef UNICENSINTEGRATION_H_
 #define UNICENSINTEGRATION_H_
 
@@ -27,11 +34,11 @@
 /*                  USER ADJUSTABLE VALUES                              */
 /*>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>*/
 
-#define ENABLE_INIC_WATCHDOG    (false)
+#define ENABLE_INIC_WATCHDOG    (true)
 #define ENABLE_AMS_LIB          (true)
 #define DEBUG_XRM
 #define BOARD_PMS_TX_SIZE       (72)
-#define CMD_QUEUE_LEN           (4)
+#define CMD_QUEUE_LEN           (6)
 
 #include <string.h>
 #include <stdarg.h>
@@ -48,11 +55,11 @@
  */
 typedef enum
 {
-    ///Result is OK and the processing is finished. Safe to dequeue this command.
+    /**Result is OK and the processing is finished. Safe to dequeue this command.*/
     UniCmdResult_OK_ProcessFinished,
-    ///Result is OK but the processing is ongoing. Must wait for callback.
+    /**Result is OK but the processing is ongoing. Must wait for callback.*/
     UniCmdResult_OK_NeedToWaitForCB,
-    ///Result is error and the processing is finished. Safe to dequeue this command.
+    /**Result is error and the processing is finished. Safe to dequeue this command.*/
     UniCmdResult_ERROR_ProcessFinished
 } UnicensCmdResult_t;
 
@@ -134,7 +141,7 @@ typedef struct
     bool initialized;
     RB_t rb;
     uint8_t rbBuf[(CMD_QUEUE_LEN * sizeof(UnicensCmdEntry_t))];
-    Ucs_Inst_t *UNICENS;
+    Ucs_Inst_t *unicens;
     Ucs_InitData_t uniInitData;
     bool triggerService;
     Ucs_Lld_Api_t *uniLld;

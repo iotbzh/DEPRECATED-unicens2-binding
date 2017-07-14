@@ -46,7 +46,7 @@ void UCSI_Vol_Service (UCSI_Data_t *pPriv) {
 
 UCSI_channelsT *UCSI_Vol_Init (UCSI_Data_t *pPriv, UCSI_VolumeServiceCB_t serviceCB) {
     int err;
-    err = lib_most_volume_init(pPriv->UNICENS, (lib_most_volume_service_cb_t) serviceCB);
+    err = lib_most_volume_init(pPriv->unicens, (lib_most_volume_service_cb_t) serviceCB);
     if (err) return (NULL);
     else return (ucsiChannels);
 }
