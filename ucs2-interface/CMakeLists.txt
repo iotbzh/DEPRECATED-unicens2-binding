@@ -20,7 +20,7 @@
 PROJECT_TARGET_ADD(ucs2-inter)
 
     # Define targets 
-    ADD_LIBRARY(ucs2-inter STATIC ucs_lib_interf.c ucs_vol_interf.c ucs-xml/UcsXml.c)
+    ADD_LIBRARY(ucs2-inter STATIC ucs_lib_interf.c ucs_vol_interf.c ucs-xml/UcsXml.c ucs-xml/UcsXml_Private.c)
 
     # Library properties
     SET_TARGET_PROPERTIES(ucs2-inter PROPERTIES OUTPUT_NAME ucs2interface)
