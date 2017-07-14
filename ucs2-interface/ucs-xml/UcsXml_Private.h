@@ -38,9 +38,9 @@ typedef enum
 {
     SYNC_DATA        = 0,      /*!< \brief  Specifies the synchronous streaming data type */
     CONTROL_DATA     = 2,      /*!< \brief  Specifies the control data type */
-    AV_PACKETIZED    = 3,      /*!< \brief  Specifies the A/V Packetized Isochronous 
+    AV_PACKETIZED    = 3,      /*!< \brief  Specifies the A/V Packetized Isochronous
                                             streaming data type */
-    QOS_IP           = 4,      /*!< \brief  Specifies the Quality of Service IP 
+    QOS_IP           = 4,      /*!< \brief  Specifies the Quality of Service IP
                                             streaming data type*/
     DISC_FRAME_PHASE = 5,      /*!< \brief  Specifies the DiscreteFrame Isochronous
                                             streaming phase data type */

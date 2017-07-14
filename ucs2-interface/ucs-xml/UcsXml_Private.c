@@ -82,7 +82,7 @@ void *MCalloc(struct UcsXmlObjectList *list, uint32_t nElem, uint32_t elemSize)
     void *obj;
     struct UcsXmlObjectList *tail = list;
     if (NULL == list || 0 == nElem || 0 == elemSize) return NULL;
-    
+
     obj = calloc(nElem, elemSize);
     if (NULL == obj)
     {
