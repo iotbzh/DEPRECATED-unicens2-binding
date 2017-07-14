@@ -18,6 +18,7 @@
 
 # Add target to project dependency list
 PROJECT_TARGET_ADD(ucs2-inter)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DNDEBUG")
 
     # Define targets 
     ADD_LIBRARY(ucs2-inter STATIC ucs_lib_interf.c ucs_vol_interf.c ucs-xml/UcsXml.c ucs-xml/UcsXml_Private.c)

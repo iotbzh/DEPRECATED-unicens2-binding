@@ -62,7 +62,7 @@ struct UcsXmlScript
 struct UcsXmlJobList
 {
     Ucs_Xrm_ResObject_t *job;
-    struct UcsXmlJobList *next; 
+    struct UcsXmlJobList *next;
 };
 
 typedef enum
@@ -157,7 +157,7 @@ static const char* AVP_PACKET_SIZE =        "IsocPacketSize";
 #define QOS_CONNECTION                      "QoSConnection"
 #define IPC_CONNECTION                      "IPCConnection"
 
-static const char* ALL_CONNECTIONS[] = { SYNC_CONNECTION, AVP_CONNECTION, 
+static const char* ALL_CONNECTIONS[] = { SYNC_CONNECTION, AVP_CONNECTION,
                         DFP_CONNECTION, QOS_CONNECTION, IPC_CONNECTION, NULL };
 
 #define MOST_SOCKET                         "MOSTSocket"
@@ -166,7 +166,7 @@ static const char* ALL_CONNECTIONS[] = { SYNC_CONNECTION, AVP_CONNECTION,
 #define STREAM_SOCKET                       "StreamSocket"
 #define SPLITTER                            "Splitter"
 #define COMBINER                            "Combiner"
-static const char* ALL_SOCKETS[] = { MOST_SOCKET, USB_SOCKET, MLB_SOCKET, 
+static const char* ALL_SOCKETS[] = { MOST_SOCKET, USB_SOCKET, MLB_SOCKET,
                         STREAM_SOCKET, SPLITTER, COMBINER, NULL };
 
 #define MLB_PORT                            "MediaLBPort"
@@ -215,7 +215,7 @@ static const char* I2C_TIMEOUT =            "Timeout";
 #define SCRIPT_I2C_PORT_CREATE              "I2CPortCreate"
 #define SCRIPT_I2C_PORT_WRITE               "I2CPortWrite"
 #define SCRIPT_I2C_PORT_READ                "I2CPortRead"
-static const char* ALL_SCRIPTS[] = { SCRIPT_MSG_SEND, SCRIPT_PAUSE, 
+static const char* ALL_SCRIPTS[] = { SCRIPT_MSG_SEND, SCRIPT_PAUSE,
     SCRIPT_GPIO_PORT_CREATE, SCRIPT_GPIO_PORT_PIN_MODE, SCRIPT_GPIO_PIN_STATE,
     SCRIPT_I2C_PORT_CREATE, SCRIPT_I2C_PORT_WRITE, SCRIPT_I2C_PORT_READ, NULL };
 
@@ -266,7 +266,7 @@ static ParseResult_t ParseRoutes(UcsXmlVal_t *ucs, PrivateData_t *priv);
 
 UcsXmlVal_t *UcsXml_Parse(const char *xmlString)
 {
-    UcsXmlVal_t *val;
+    UcsXmlVal_t *val = NULL;
     ParseResult_t result = Parse_MemoryError;
     mxml_node_t *tree;
     if (!(tree = mxmlLoadString(NULL, xmlString, MXML_NO_CALLBACK))) goto ERROR;
@@ -284,10 +284,11 @@ ERROR:
         UcsXml_CB_OnError("XML error, aborting..", 0);
     else
         UcsXml_CB_OnError("Allocation error, aborting..", 0);
-    assert(false);    
+    assert(false);
     if (!tree)
         mxmlDelete(tree);
-    FreeVal(val);
+    if (val)
+        FreeVal(val);
     return NULL;
 }
 
@@ -415,7 +416,7 @@ static bool GetString(mxml_node_t *element, const char *key, const char **out, b
         }
     }
     if (mandatory)
-        UcsXml_CB_OnError("Can not find attribute='%s' from element <%s>", 
+        UcsXml_CB_OnError("Can not find attribute='%s' from element <%s>",
             2, key, element->value.element.name);
     return false;
 }
@@ -489,7 +490,7 @@ static bool GetPayload(mxml_node_t *element, const char *name, uint8_t **pPayloa
         return false;
     tempLen = strlen(txt) + 1;
     txtCopy = malloc(tempLen);
-    if (NULL == txtCopy) 
+    if (NULL == txtCopy)
         return false;
     strncpy(txtCopy, txt, tempLen);
     tempLen = tempLen / 3; /* 2 chars hex value plus space (AA )  */
@@ -633,7 +634,7 @@ static ParseResult_t ParseAll(mxml_node_t *tree, UcsXmlVal_t *ucs, PrivateData_t
     priv->autoRouteId = 0x8000;
     if (!GetCount(tree, NODE, &nodeCount, true))
         RETURN_ASSERT(Parse_XmlError);
-    
+
     ucs->pNod = MCalloc(&priv->objList, nodeCount, sizeof(Ucs_Rm_Node_t));
     if (NULL == ucs->pNod) RETURN_ASSERT(Parse_MemoryError);
 
@@ -685,7 +686,7 @@ static ParseResult_t ParseAll(mxml_node_t *tree, UcsXmlVal_t *ucs, PrivateData_t
     result = ParseRoutes(ucs, priv);
     if (Parse_MemoryError == result) RETURN_ASSERT(Parse_MemoryError)
     else if (Parse_XmlError == result) RETURN_ASSERT(Parse_XmlError);
-    
+
     /*Iterate all scripts. No scripts at all is allowed*/
     if(GetElement(tree, SCRIPT, true, &sub, false))
     {
@@ -766,7 +767,7 @@ static ParseResult_t ParseNode(mxml_node_t *node, PrivateData_t *priv)
 }
 
 static ParseResult_t ParseConnection(mxml_node_t * node, const char *conType, PrivateData_t *priv)
-{   
+{
     assert(NULL != node && NULL != priv);
     if (NULL == conType) RETURN_ASSERT(Parse_XmlError);
     if (!GetDataType(conType, &priv->conData.dataType)) RETURN_ASSERT(Parse_XmlError);
@@ -844,7 +845,7 @@ static ParseResult_t ParseSocket(mxml_node_t *soc, bool isSource, MSocketType_t 
         /* If there is an combiner stored, add it now into job list (right before MOST socket) */
         if (priv->conData.combiner)
             if (!AddJob(jobList, priv->conData.combiner, &priv->objList)) RETURN_ASSERT(Parse_XmlError);
-        
+
         p.list = &priv->objList;
         p.isSource = isSource;
         p.dataType = priv->conData.dataType;
@@ -880,7 +881,7 @@ static ParseResult_t ParseSocket(mxml_node_t *soc, bool isSource, MSocketType_t 
         {
             p.usbPort = priv->nodeData.usbPort;
         } else {
-            if (!GetUsbPortDefaultCreated(&p.usbPort, &priv->objList)) 
+            if (!GetUsbPortDefaultCreated(&p.usbPort, &priv->objList))
                 RETURN_ASSERT(Parse_XmlError);
             priv->nodeData.usbPort = (Ucs_Xrm_UsbPort_t *)p.usbPort;
         }
@@ -905,7 +906,7 @@ static ParseResult_t ParseSocket(mxml_node_t *soc, bool isSource, MSocketType_t 
         {
             p.mlbPort = priv->nodeData.mlbPort;
         } else {
-            if (!GetMlbPortDefaultCreated(&p.mlbPort, &priv->objList)) 
+            if (!GetMlbPortDefaultCreated(&p.mlbPort, &priv->objList))
                 RETURN_ASSERT(Parse_XmlError);
             priv->nodeData.mlbPort = (Ucs_Xrm_MlbPort_t *)p.mlbPort;
         }
@@ -951,7 +952,7 @@ static ParseResult_t ParseSocket(mxml_node_t *soc, bool isSource, MSocketType_t 
         }
         p.list = &priv->objList;
         if (!GetUInt16(soc, BYTES_PER_FRAME, &p.bytesPerFrame, true)) RETURN_ASSERT(Parse_XmlError);
-        /* Current input socket will be stored inside splitter 
+        /* Current input socket will be stored inside splitter
          * and splitter will become the new input socket */
         if (!(p.inSoc = priv->conData.inSocket)) RETURN_ASSERT(Parse_XmlError);
         if (!GetSplitter((Ucs_Xrm_Splitter_t **)&priv->conData.inSocket, &p)) RETURN_ASSERT(Parse_XmlError);
@@ -959,7 +960,7 @@ static ParseResult_t ParseSocket(mxml_node_t *soc, bool isSource, MSocketType_t 
         if (!GetElement(soc->child, MOST_SOCKET, false, &mostSoc, true))
             RETURN_ASSERT(Parse_XmlError);
         priv->conData.syncOffsetNeeded = true;
-        
+
         while(mostSoc)
         {
             struct UcsXmlJobList *jobListCopy = DeepCopyJobList(*jobList, &priv->objList);
@@ -989,12 +990,12 @@ static ParseResult_t ParseSocket(mxml_node_t *soc, bool isSource, MSocketType_t 
         RETURN_ASSERT(Parse_XmlError);
     }
     /*Handle Pending Combiner Tasks*/
-    if (NULL != priv->conData.outSocket && NULL != priv->conData.combiner && 
+    if (NULL != priv->conData.outSocket && NULL != priv->conData.combiner &&
         NULL != priv->conData.pendingCombinerMostSockets)
     {
         mxml_node_t *tmp = priv->conData.pendingCombinerMostSockets;
         priv->conData.pendingCombinerMostSockets = NULL;
-        /* Current output socket will be stored inside combiner 
+        /* Current output socket will be stored inside combiner
          * and combiner will become the new output socket */
         priv->conData.combiner->port_socket_obj_ptr = priv->conData.outSocket;
         priv->conData.outSocket = priv->conData.combiner;
@@ -1174,11 +1175,11 @@ static ParseResult_t ParseScriptMsgSend(mxml_node_t *act, Ucs_Ns_Script_t *scr, 
 
     if (!GetUInt8(act, OP_TYPE_RESPONSE, &res->OpCode, true))
         RETURN_ASSERT(Parse_XmlError);
-    
+
     res->FBlockId = req->FBlockId;
     res->FunktId = req->FunktId;
     GetPayload(act, PAYLOAD_RES_HEX, &res->DataPtr, &res->DataLen, 0, &priv->objList, false);
-    
+
     if (!GetPayload(act, PAYLOAD_REQ_HEX, &req->DataPtr, &req->DataLen, 0, &priv->objList, true))
         RETURN_ASSERT(Parse_XmlError);
     if (0 == req->DataLen || NULL == req->DataPtr)
@@ -1231,7 +1232,7 @@ static ParseResult_t ParseScriptGpioPinMode(mxml_node_t *act, Ucs_Ns_Script_t *s
     req->FunktId = res->FunktId = 0x703;
     req->OpCode = 0x2;
     res->OpCode = 0xC;
-    if (!GetPayload(act, PIN_CONFIG, &payload, &payloadLen, 
+    if (!GetPayload(act, PIN_CONFIG, &payload, &payloadLen,
         PORT_HANDLE_OFFSET, /* First two bytes are reserved for port handle */
         &priv->objList, true)) RETURN_ASSERT(Parse_XmlError);
     payload[0] = 0x1D;
@@ -1448,7 +1449,7 @@ static ParseResult_t ParseRoutes(UcsXmlVal_t *ucs, PrivateData_t *priv)
         return Parse_Success; /*Its okay to have no routes at all (e.g. MEP traffic only)*/
     ucs->pRoutes = MCalloc(&priv->objList, routeAmount, sizeof(Ucs_Rm_Route_t));
     if (NULL == ucs->pRoutes) RETURN_ASSERT(Parse_MemoryError);
-    
+
     /*Second: Fill allocated structure now*/
     sourceRoute = priv->pRtLst;
     while (NULL != sourceRoute)
@@ -1474,7 +1475,7 @@ static ParseResult_t ParseRoutes(UcsXmlVal_t *ucs, PrivateData_t *priv)
         sourceRoute = sourceRoute->next;
     }
     assert(routeAmount == ucs->routesSize);
-    
+
 #ifdef DEBUG
     /* Third perform checks when running in debug mode*/
     {
