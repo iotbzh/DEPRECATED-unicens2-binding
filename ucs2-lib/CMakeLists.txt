@@ -86,7 +86,6 @@ ADD_LIBRARY(ucs2-lib STATIC
     TARGET_INCLUDE_DIRECTORIES(ucs2-lib
        PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/unicens/inc
-        ${CMAKE_CURRENT_SOURCE_DIR}/unicens/cfg
-        ${CMAKE_CURRENT_SOURCE_DIR}/../ucs2-interface/ucs-xml
+        ${CMAKE_CURRENT_SOURCE_DIR}/cfg_agl
     )
 
