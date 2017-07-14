@@ -266,7 +266,7 @@ static ParseResult_t ParseRoutes(UcsXmlVal_t *ucs, PrivateData_t *priv);
 
 UcsXmlVal_t *UcsXml_Parse(const char *xmlString)
 {
-    UcsXmlVal_t *val;
+    UcsXmlVal_t *val = NULL;
     ParseResult_t result = Parse_MemoryError;
     mxml_node_t *tree;
     if (!(tree = mxmlLoadString(NULL, xmlString, MXML_NO_CALLBACK))) goto ERROR;
@@ -287,7 +287,8 @@ ERROR:
     assert(false);    
     if (!tree)
         mxmlDelete(tree);
-    FreeVal(val);
+    if (val)
+        FreeVal(val);
     return NULL;
 }
 
