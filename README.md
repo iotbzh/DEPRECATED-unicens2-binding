@@ -2,6 +2,14 @@
 AGL-UNICENS binding expose UNICENS-V2 APIs through AGL framework
 ------------------------------------------------------------------------
 
+Cloning Audio-Binding from Git
+-------------------------------------------------------
+
+```
+git clone https://github.com/iotbzh/unicens2-binding
+cd  unicens2-binding
+git submodule update --recursive --init
+```
 
 AFB_daemon dependency on Standard Linux Distributions
 -------------------------------------------------------
@@ -21,7 +29,7 @@ AFB_daemon dependency on Standard Linux Distributions
     Ubuntu >= 16.4 libuuid-devel
       apt-get install cmake git electric-fence libsystemd-dev libssl-dev uuid-dev libasound2-dev libgcrypt20-dev libgnutls-dev libgnutls-dev libjson-c-dev libmagic-dev  libmxml-dev
 
-    libmicrohttpd>=0.9.54 (as today OpenSuse-42.2 or Ubuntu-.16.4 ship older versions)
+    libmicrohttpd>=0.9.55 (as today OpenSuse-42.2 or Ubuntu-.16.4 ship older versions)
     afb-daemon from AGL Gerrit git clone https://gerrit.automotivelinux.org/gerrit/src/app-framework-binder
 
 ```
@@ -42,12 +50,13 @@ AFB_daemon dependency on Standard Linux Distributions
     source ~/.bashrc
 
     # install LibMicroHttpd
-    wget https://ftp.gnu.org/gnu/libmicrohttpd/libmicrohttpd-0.9.54.tar.gz
-    tar -xzf libmicrohttpd-0.9.54.tar.gz
-    cd libmicrohttpd-0.9.54
-    ./configure --prefix=$INSTALL_PREFIX
+    LIB_MH_VERSION=0.9.55
+    wget https://ftp.gnu.org/gnu/libmicrohttpd/libmicrohttpd-${LIB_MH_VERSION}.tar.gz
+    tar -xzf libmicrohttpd-${LIB_MH_VERSION}.tar.gz
+    cd libmicrohttpd-${LIB_MH_VERSION}
+    ./configure --prefix=${INSTALL_PREFIX}
     make
-    make install-strip
+    sudo make install-strip
 
     # retrieve last AFB_daemon from AGL
     git clone https://gerrit.automotivelinux.org/gerrit/src/app-framework-binder
