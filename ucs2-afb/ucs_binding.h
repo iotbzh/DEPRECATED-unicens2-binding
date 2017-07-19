@@ -18,6 +18,9 @@
 #ifndef UCS2BINDING_H
 #define UCS2BINDING_H
 
+// Use Version of AGL Application Framework API
+#define AFB_BINDING_VERSION 2
+
 #ifndef PUBLIC
   #define PUBLIC
 #endif
@@ -25,7 +28,6 @@
 
 #include <json-c/json.h>
 #include <afb/afb-binding.h>
-#include <afb/afb-service-itf.h>
 
 #include "ucs_interface.h"
 
@@ -41,7 +43,7 @@ extern const struct afb_binding_interface *afbIface;
 extern struct afb_service afbSrv;
 
 // API verbs prototype
-PUBLIC void ucs2Init (struct afb_req request);
+PUBLIC void ucs2Configure (struct afb_req request);
 PUBLIC void ucs2SetVol (struct afb_req request);
 
 

@@ -18,4 +18,6 @@
 #define _GNU_SOURCE
 
 #include "ucs_binding.h"
+
+// include code generated from afb-genskel
 #include "ucs_apidef.h"
