@@ -1,6 +1,6 @@
 {
   "openapi": "3.0.0",
-  "$schema": "file:///home/fulup/Workspace/AGL-AppFW/unicens2rc-afb/etc/openapi-schema.json",
+  "$schema": "http:iot.bzh/download/openapi/schema-3.0/default-schema.json",
   "info": {
     "description": "",
     "title": "ucs2",
@@ -8,13 +8,13 @@
     "x-binding-c-generator": {
       "api": "UNICENS",
       "version": 2,
-      "prefix": "ucs2_",
-      "postfix": "",
+      "prefix": "Ucs2",
+      "postfix": "API",
       "start": null ,
       "onevent": null,
       "init": null,
-      "scope": "static",
-      "private": true
+      "scope": "",
+      "private": false
     }
   },
   "servers": [
@@ -39,12 +39,12 @@
   "components": {
     "schemas": {
       "afb-reply": {
-        "$ref": "#/components/schemas/afb-reply-v1"
+        "$ref": "#/components/schemas/afb-reply-v2"
       },
       "afb-event": {
-        "$ref": "#/components/schemas/afb-event-v1"
+        "$ref": "#/components/schemas/afb-event-v2"
       },
-      "afb-reply-v1": {
+      "afb-reply-v2": {
         "title": "Generic response.",
         "type": "object",
         "required": [ "jtype", "request" ],
@@ -67,7 +67,7 @@
           "response": { "type": "object" }
         }
       },
-      "afb-event-v1": {
+      "afb-event-v2": {
         "type": "object",
         "required": [ "jtype", "event" ],
         "properties": {
@@ -121,8 +121,27 @@
         }
       }
     },
+    "/volume": {
+      "description": "Set Master Volume.",
+      "get": {
+        "x-permissions": {
+          "$ref": "#/components/x-permissions/monitor"
+        },
+        "parameters": [
+          {
+            "in": "query",
+            "name": "value",
+            "required": true,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "responses": {
+          "200": {"$ref": "#/components/responses/200"}
+        }
+      }
+    },
     "/monitor": {
-      "description": "Subscribe to Unicens2 Events.",
+      "description": "Subscribe to Unicens Event.",
       "get": {
         "x-permissions": {
           "$ref": "#/components/x-permissions/monitor"

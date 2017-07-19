@@ -16,28 +16,44 @@
 # limitations under the License.
 ###########################################################################
 
+
+# Generate API-v2 hat from OpenAPI json definition
+macro(SET_TARGET_GENSKEL TARGET_NAME API_DEF_NAME)
+    add_custom_command(OUTPUT ${API_DEF_NAME}.h
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        DEPENDS ${API_DEF_NAME}.json
+        COMMAND afb-genskel  ${API_DEF_NAME}.json >${API_DEF_NAME}.h 
+    )
+    add_custom_target(${API_DEF_NAME}_OPENAPI DEPENDS ${API_DEF_NAME}.h)
+    add_dependencies(${TARGET_NAME} ${API_DEF_NAME}_OPENAPI)
+    
+endmacro(SET_TARGET_GENSKEL)
+
 # Add target to project dependency list
-PROJECT_TARGET_ADD(ucs2)
+PROJECT_TARGET_ADD(ucs2-afb)
 
     # Define project Targets
-    ADD_LIBRARY(ucs2 MODULE ucs_binding.c ucs_apihat.c)
+    ADD_LIBRARY(${TARGET_NAME} MODULE ucs_apihat.c ucs_binding.c )
+
+    # Generate API-v2 hat from OpenAPI json definition
+    SET_TARGET_GENSKEL(${TARGET_NAME} ucs_apidef)
 
     # Binder exposes a unique public entry point
-    SET_TARGET_PROPERTIES(ucs2 PROPERTIES
+    SET_TARGET_PROPERTIES(${TARGET_NAME} PROPERTIES
 	PREFIX "afb-"
         LABELS "BINDING"
 	LINK_FLAGS  ${BINDINGS_LINK_FLAG}
-        OUTPUT_NAME ${TARGET_NAME}
+        OUTPUT_NAME ucs2
 
     )
 
     # Library dependencies (include updates automatically)
-    TARGET_LINK_LIBRARIES(ucs2 
+    TARGET_LINK_LIBRARIES(${TARGET_NAME}
         ucs2-inter
         ${link_libraries}
     )
 
     # installation directory
-    INSTALL(TARGETS ucs2
+    INSTALL(TARGETS ${TARGET_NAME}
         LIBRARY DESTINATION ${BINDINGS_INSTALL_DIR})
 
