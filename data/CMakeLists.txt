@@ -23,18 +23,22 @@
 ##################################################
 PROJECT_TARGET_ADD(ucs2_config)
 
-    file(GLOB SOURCE_FILES "*.xml")
+    file(GLOB XML_FILES "*.xml")
+    set(XML_SCHEMA unicens.xsd)
 
     add_custom_target(${TARGET_NAME}
        DEPENDS  ${CMAKE_CURRENT_BINARY_DIR}/${TARGET_NAME}
     )
 
+    # check XML schema before pushing config
     add_custom_command(
-       DEPENDS  ${SOURCE_FILES}
+       DEPENDS  ${XML_FILES}
        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${TARGET_NAME}
+       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+       COMMAND xmllint -schema ${XML_SCHEMA} ${XML_FILES} --noout
        COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/${TARGET_NAME}
-       COMMAND touch ${CMAKE_CURRENT_BINARY_DIR}/${TARGET_NAME}
-       COMMAND cp -r ${SOURCE_FILES} ${CMAKE_CURRENT_BINARY_DIR}/${TARGET_NAME}
+       COMMAND touch ${CMAKE_CURRENT_BINARY_DIR}/${TARGET_NAME}      
+       COMMAND cp -r ${XML_FILES} ${CMAKE_CURRENT_BINARY_DIR}/${TARGET_NAME}
     )
 
     SET_TARGET_PROPERTIES(${TARGET_NAME} PROPERTIES
