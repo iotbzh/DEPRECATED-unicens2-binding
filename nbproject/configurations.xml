@@ -35,7 +35,6 @@
         <in>libmostvolume.cpp</in>
       </df>
       <df name="ucs2-afb">
-        <in>ucs_apihat.c</in>
         <in>ucs_binding.c</in>
         <in>ucs_binding.new.c</in>
       </df>
@@ -283,13 +282,6 @@
           </preprocessorList>
         </ccTool>
       </folder>
-      <item path="ucs2-afb/ucs_apihat.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="1">
-          <preprocessorList>
-            <Elem>ucs2_EXPORTS</Elem>
-          </preprocessorList>
-        </cTool>
-      </item>
       <item path="ucs2-afb/ucs_binding.c" ex="false" tool="0" flavor2="3">
         <cTool flags="1">
           <preprocessorList>
@@ -675,15 +667,6 @@
           </preprocessorList>
         </ccTool>
       </folder>
-      <item path="ucs2-afb/ucs_apihat.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="1">
-          <incDir>
-            <pElem>ucs2-afb</pElem>
-            <pElem>../../../opt/include/afb</pElem>
-            <pElem>build/ucs2-afb</pElem>
-          </incDir>
-        </cTool>
-      </item>
       <item path="ucs2-afb/ucs_binding.c" ex="false" tool="0" flavor2="3">
         <cTool flags="1">
           <incDir>
