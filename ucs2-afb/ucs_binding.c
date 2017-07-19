@@ -65,11 +65,18 @@ typedef struct {
 static ucsContextT *ucsContextS;
 
 PUBLIC void UcsXml_CB_OnError(const char format[], uint16_t vargsCnt, ...) {
-    /*DEBUG (afbIface, format, args); */
+    /*AFB_DEBUG (afbIface, format, args); */
     va_list args;
     va_start (args, vargsCnt);
     vfprintf (stderr, format, args);
     va_end(args);
+    
+    va_list argptr;
+    char outbuf[300];
+    va_start(argptr, vargsCnt);
+    vsprintf(outbuf, format, argptr);
+    va_end(argptr);
+    AFB_WARNING (outbuf);
 }
 
 PUBLIC uint16_t UCSI_CB_OnGetTime(void *pTag) {
@@ -99,8 +106,8 @@ STATIC int onTimerCB (sd_event_source* source,uint64_t timer, void* pTag) {
 PUBLIC void UCSI_CB_OnSetServiceTimer(void *pTag, uint16_t timeout) {
   uint64_t usec;
   /* set a timer with  250ms accuracy */
-  sd_event_now(afb_daemon_get_event_loop(afbIface->daemon), CLOCK_BOOTTIME, &usec);
-  sd_event_add_time(afb_daemon_get_event_loop(afbIface->daemon), NULL, CLOCK_MONOTONIC, usec + (timeout*1000), 250, onTimerCB, pTag);
+  sd_event_now(afb_daemon_get_event_loop(), CLOCK_BOOTTIME, &usec);
+  sd_event_add_time(afb_daemon_get_event_loop(), NULL, CLOCK_MONOTONIC, usec + (timeout*1000), 250, onTimerCB, pTag);
 
 }
 
@@ -121,7 +128,7 @@ void UCSI_CB_OnUserMessage(void *pTag, bool isError, const char format[],
     vsprintf(outbuf, format, argptr);
     va_end(argptr);
     if (isError)
-        NOTICE (afbIface, outbuf);
+        AFB_NOTICE (outbuf);
 }
 
 /** UCSI_Service cannot be called directly within UNICENS context, need to service stack through mainloop */
@@ -137,7 +144,7 @@ STATIC int OnServiceRequiredCB (sd_event_source *source, uint64_t usec, void *pT
 PUBLIC void UCSI_CB_OnServiceRequired(void *pTag) {
 
    /* push an asynchronous request for loopback to call UCSI_Service */
-   sd_event_add_time(afb_daemon_get_event_loop(afbIface->daemon), NULL, CLOCK_MONOTONIC, 0, 0, OnServiceRequiredCB, pTag);
+   sd_event_add_time(afb_daemon_get_event_loop(), NULL, CLOCK_MONOTONIC, 0, 0, OnServiceRequiredCB, pTag);
 }
 
 /* Callback when ever this UNICENS wants to send a message to INIC. */
@@ -173,7 +180,7 @@ PUBLIC void UCSI_CB_OnTxRequest(void *pTag, const uint8_t *pData, uint32_t len) 
  * \param pTag - Pointer given by the integrator by UCSI_Init
  */
 void UCSI_CB_OnStop(void *pTag) {
-    NOTICE (afbIface, "UNICENS stopped");
+    AFB_NOTICE ("UNICENS stopped");
 
 }
 
@@ -231,7 +238,7 @@ int onReadCB (sd_event_source* src, int fileFd, uint32_t revents, void* pTag) {
         return 0;
     ok= UCSI_ProcessRxData(&ucsContext->ucsiData, pBuffer, (uint16_t)len);
     if (!ok) {
-        DEBUG (afbIface, "Buffer overrun (not handle)");
+        AFB_DEBUG ("Buffer overrun (not handle)");
         /* Buffer overrun could replay pBuffer */
     }
     return 0;
@@ -264,7 +271,7 @@ STATIC UcsXmlVal_t* ParseFile(struct afb_req request) {
     xmlBuffer[readSize] = '\0'; /* In any case, terminate it. */
 
     if (readSize != fdStat.st_size)  {
-        afb_req_fail_f (request, "fileread-fail", "File to read fullfile '%s' size(%d!=%d)", filename, readSize, fdStat.st_size);
+        afb_req_fail_f (request, "fileread-fail", "File to read fullfile '%s' size(%d!=%d)", filename, (int)readSize, (int)fdStat.st_size);
         goto OnErrorExit;
     }
 
@@ -292,8 +299,8 @@ STATIC int volOnSvcCB (sd_event_source* source,uint64_t timer, void* pTag) {
 /* This callback is fire each time an volume event wait in the queue */
 void volumeCB (uint16_t timeout) {
     uint64_t usec;
-    sd_event_now(afb_daemon_get_event_loop(afbIface->daemon), CLOCK_BOOTTIME, &usec);
-    sd_event_add_time(afb_daemon_get_event_loop(afbIface->daemon), NULL, CLOCK_MONOTONIC, usec + (timeout*1000), 250, volOnSvcCB, ucsContextS);
+    sd_event_now(afb_daemon_get_event_loop(), CLOCK_BOOTTIME, &usec);
+    sd_event_add_time(afb_daemon_get_event_loop(), NULL, CLOCK_MONOTONIC, usec + (timeout*1000), 250, volOnSvcCB, ucsContextS);
 }
 
 STATIC int volSndCmd (struct afb_req request, struct json_object *commandJ, ucsContextT *ucsContext) {
@@ -416,7 +423,7 @@ PUBLIC void ucs2SetVol (struct afb_req request) {
 }
 
 
-PUBLIC void ucs2Init (struct afb_req request) {
+PUBLIC void ucs2Configure (struct afb_req request) {
     static UcsXmlVal_t *ucsConfig;
     static ucsContextT ucsContext;
 
@@ -439,7 +446,7 @@ PUBLIC void ucs2Init (struct afb_req request) {
         UCSI_Init(&ucsContext.ucsiData, &ucsContext);
 
         /* register aplayHandle file fd into binder mainloop */
-        err = sd_event_add_io(afb_daemon_get_event_loop(afbIface->daemon), &evtSource, ucsContext.rx.fileHandle, EPOLLIN, onReadCB, &ucsContext);
+        err = sd_event_add_io(afb_daemon_get_event_loop(), &evtSource, ucsContext.rx.fileHandle, EPOLLIN, onReadCB, &ucsContext);
         if (err < 0) {
             afb_req_fail_f (request, "register-mainloop", "Cannot hook events to mainloop");
             goto OnErrorExit;
