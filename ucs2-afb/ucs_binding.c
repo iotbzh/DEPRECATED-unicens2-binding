@@ -380,7 +380,7 @@ STATIC int volSndCmd (struct afb_req request, struct json_object *commandJ, ucsC
 }
 
 
-PUBLIC void ucs2SetVol (struct afb_req request) {
+PUBLIC void ucs2_volume (struct afb_req request) {
     struct json_object *queryJ;
     int err;
 
@@ -423,7 +423,7 @@ PUBLIC void ucs2SetVol (struct afb_req request) {
 }
 
 
-PUBLIC void ucs2Configure (struct afb_req request) {
+PUBLIC void ucs2_configure (struct afb_req request) {
     static UcsXmlVal_t *ucsConfig;
     static ucsContextT ucsContext;
 
@@ -471,4 +471,9 @@ PUBLIC void ucs2Configure (struct afb_req request) {
 
  OnErrorExit:
     return;
+}
+
+PUBLIC void ucs2_monitor (struct afb_req request) {
+    
+   afb_req_success(request,NULL,"UNICENS-to_be_done"); 
 }

@@ -8,8 +8,8 @@
     "x-binding-c-generator": {
       "api": "UNICENS",
       "version": 2,
-      "prefix": "Ucs2",
-      "postfix": "API",
+      "prefix": "ucs2_",
+      "postfix": "",
       "start": null ,
       "onevent": null,
       "init": null,
@@ -102,8 +102,8 @@
     }
   },
   "paths": {
-    "/initialise": {
-      "description": "Initialise Unicens2 lib from NetworkConfig.XML.",
+    "/configure": {
+      "description": "configure Unicens2 lib from NetworkConfig.XML.",
       "get": {
         "x-permissions": {
           "$ref": "#/components/x-permissions/config"

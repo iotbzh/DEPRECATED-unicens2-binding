@@ -43,8 +43,9 @@ extern const struct afb_binding_interface *afbIface;
 extern struct afb_service afbSrv;
 
 // API verbs prototype
-PUBLIC void ucs2Configure (struct afb_req request);
-PUBLIC void ucs2SetVol (struct afb_req request);
+PUBLIC void ucs2_configure (struct afb_req request);
+PUBLIC void ucs2_volume    (struct afb_req request);
+PUBLIC void ucs2_monitor   (struct afb_req request);
 
 
 #endif /* UCS2BINDING_H */
