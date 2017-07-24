@@ -85,11 +85,8 @@ typedef enum
 typedef struct
 {
     Ucs_Rm_Node_t *nod;
-    bool usbPortAddedToJobList; /* USB Port must be added only ONCE to connection job lists */
     Ucs_Xrm_UsbPort_t *usbPort;
-    bool mlbPortAddedToJobList; /* MLB Port must be added only ONCE to connection job lists */
     Ucs_Xrm_MlbPort_t *mlbPort;
-    bool strmPortsAddedToJobList; /* STRM Ports must be added only ONCE to connection job lists */
     Ucs_Xrm_StrmPort_t *strmPortA;
     Ucs_Xrm_StrmPort_t *strmPortB;
 } NodeData_t;
@@ -885,11 +882,7 @@ static ParseResult_t ParseSocket(mxml_node_t *soc, bool isSource, MSocketType_t 
                 RETURN_ASSERT(Parse_XmlError);
             priv->nodeData.usbPort = (Ucs_Xrm_UsbPort_t *)p.usbPort;
         }
-        if (!priv->nodeData.usbPortAddedToJobList)
-        {
-            priv->nodeData.usbPortAddedToJobList = true;
-            if(!AddJob(jobList, p.usbPort, &priv->objList)) RETURN_ASSERT(Parse_XmlError);
-        }
+        if(!AddJob(jobList, p.usbPort, &priv->objList)) RETURN_ASSERT(Parse_XmlError);
         if (!GetString(soc, ENDPOINT_ADDRESS, &p.endpointAddress, true)) RETURN_ASSERT(Parse_XmlError);
         if (!GetString(soc, FRAMES_PER_TRANSACTION, &p.framesPerTrans, true)) RETURN_ASSERT(Parse_XmlError);
         if (!GetUsbSocket((Ucs_Xrm_UsbSocket_t **)targetSock, &p)) RETURN_ASSERT(Parse_XmlError);
@@ -910,11 +903,7 @@ static ParseResult_t ParseSocket(mxml_node_t *soc, bool isSource, MSocketType_t 
                 RETURN_ASSERT(Parse_XmlError);
             priv->nodeData.mlbPort = (Ucs_Xrm_MlbPort_t *)p.mlbPort;
         }
-        if (!priv->nodeData.mlbPortAddedToJobList)
-        {
-            priv->nodeData.mlbPortAddedToJobList = true;
-            if (!AddJob(jobList, p.mlbPort, &priv->objList)) RETURN_ASSERT(Parse_XmlError);
-        }
+        if (!AddJob(jobList, p.mlbPort, &priv->objList)) RETURN_ASSERT(Parse_XmlError);
         if (!GetUInt16(soc, BANDWIDTH, &p.bandwidth, true)) RETURN_ASSERT(Parse_XmlError);
         if (!GetString(soc, CHANNEL_ADDRESS, &p.channelAddress, true)) RETURN_ASSERT(Parse_XmlError);
         if (!GetMlbSocket((Ucs_Xrm_MlbSocket_t **)targetSock, &p)) RETURN_ASSERT(Parse_XmlError);
@@ -929,12 +918,8 @@ static ParseResult_t ParseSocket(mxml_node_t *soc, bool isSource, MSocketType_t 
         p.dataType = priv->conData.dataType;
         p.streamPortA = priv->nodeData.strmPortA;
         p.streamPortB = priv->nodeData.strmPortB;
-        if (!priv->nodeData.strmPortsAddedToJobList)
-        {
-            priv->nodeData.strmPortsAddedToJobList = true;
-            if (!AddJob(jobList, p.streamPortA, &priv->objList)) RETURN_ASSERT(Parse_XmlError);
-            if (!AddJob(jobList, p.streamPortB, &priv->objList)) RETURN_ASSERT(Parse_XmlError);
-        }
+        if (!AddJob(jobList, p.streamPortA, &priv->objList)) RETURN_ASSERT(Parse_XmlError);
+        if (!AddJob(jobList, p.streamPortB, &priv->objList)) RETURN_ASSERT(Parse_XmlError);
         if (!GetUInt16(soc, BANDWIDTH, &p.bandwidth, true)) RETURN_ASSERT(Parse_XmlError);
         if (!GetString(soc, STRM_PIN, &p.streamPin, true)) RETURN_ASSERT(Parse_XmlError);
         if (!GetStrmSocket((Ucs_Xrm_StrmSocket_t **)targetSock, &p)) RETURN_ASSERT(Parse_XmlError);
