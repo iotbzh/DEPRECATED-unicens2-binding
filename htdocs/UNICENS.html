@@ -1,17 +1,22 @@
 <html>
 <head>
-    <title>Hello world test</title>
+    <title>Unicens Simple Test</title>
 
+    <link rel="stylesheet" href="Ucs2Binding.css">
     <script type="text/javascript" src="AFB-websock.js"></script>
-    <script type="text/javascript" src="AudioBinding.js"></script>
+    <script type="text/javascript" src="Ucs2Binding.js"></script>
 
-
-<body onload="init();">
-    <h1>Hello world test</h1>
-    <button id="connected" onclick="init()">Binder WS Fail</button></li>
+<body onload="init('ucs2_config','unicens', 'listconfig');">
+    <h1>Unicens Simple Test</h1>
+    
+    <button id="connected" onclick="init('ucs2_config','unicens', 'listconfig')">Binder WS Fail</button>
+    <br><br>
+    <b>Selected HAL </b>
+    <select id='ucs2_config'></select>
     <br>
+    
     <ol>
-    <li><button onclick="callbinder('UNICENS','initialise', {filename:'data/config_multichannel_audio_kit.xml'})">Parse XML and Start UNICENS</button></li>
+    <li><button onclick="callbinder('UNICENS','initialise', {filename:ucs2_config})">Parse XML and Start UNICENS</button></li>
     <li><button onclick="callbinder('UNICENS','setvol', {channel:'master', volume: 255})">Set Master Volume to 255</button></li>
     <li><button onclick="callbinder('unicens','setvol', {channel:'master', volume: 230})">Set Master Volume to 230</button></li>
     <li><button onclick="callbinder('unicens','setvol', {channel:'master', volume: 215})">Set Master Volume to 215</button></li>
@@ -26,8 +31,8 @@
     <br>
     <div id="main" style="visibility:hidden">
     <ol>
-    <li>Question <div id="question"></div>
-    <li>Response <div id="output"></div>
-    <li>Events: <div id="outevt"></div>
+    <li>Question <pre id="question"></pre>
+    <li>Response <pre id="output"></pre>
+    <li>Events: <pre id="outevt"></pre>
     </ol>
     </div>

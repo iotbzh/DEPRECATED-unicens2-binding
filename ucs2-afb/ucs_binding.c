@@ -34,6 +34,7 @@
 #include <time.h>
 #include <assert.h>
 #include <errno.h>
+#include <dirent.h> 
 
 #include "ucs_binding.h"
 #include "ucs_interface.h"
@@ -379,7 +380,6 @@ STATIC int volSndCmd (struct afb_req request, struct json_object *commandJ, ucsC
     return 1;
 }
 
-
 PUBLIC void ucs2_volume (struct afb_req request) {
     struct json_object *queryJ;
     int err;
@@ -423,7 +423,7 @@ PUBLIC void ucs2_volume (struct afb_req request) {
 }
 
 
-PUBLIC void ucs2_configure (struct afb_req request) {
+PUBLIC void ucs2_initialise (struct afb_req request) {
     static UcsXmlVal_t *ucsConfig;
     static ucsContextT ucsContext;
 
@@ -473,7 +473,59 @@ PUBLIC void ucs2_configure (struct afb_req request) {
     return;
 }
 
+
+// List Avaliable Configuration Files
+PUBLIC void ucs2_listconfig (struct afb_req request) {
+    struct json_object *queryJ, *tmpJ, *responseJ;
+    DIR  *dirHandle;
+    char *dirPath, *dirList;
+    int error=0;
+
+    queryJ = afb_req_json(request);
+    if (queryJ && json_object_object_get_ex (queryJ, "cfgpath" , &tmpJ)) {
+        strdup (json_object_get_string(tmpJ));
+    } else {    
+        dirList = strdup (UCS2_CFG_PATH); 
+        AFB_NOTICE ("fgpath:missing uses UCS2_CFG_PATH=%s", UCS2_CFG_PATH);
+    }
+
+    responseJ = json_object_new_array();
+    for (dirPath= strtok(dirList, ":"); dirPath && *dirPath; dirPath=strtok(NULL,":")) {
+         struct dirent *dirEnt;
+         
+        dirHandle = opendir (dirPath);
+        if (!dirHandle) {
+            AFB_NOTICE ("ucs2_listconfig dir=%s not readable", dirPath);
+            error++;
+            continue;
+        } 
+        
+        AFB_NOTICE ("ucs2_listconfig scanning: %s", dirPath);
+        while ((dirEnt = readdir(dirHandle)) != NULL) {
+            // Unknown type is accepted to support dump filesystems
+            if (dirEnt->d_type == DT_REG || dirEnt->d_type == DT_UNKNOWN) {
+                struct json_object *pathJ = json_object_new_object();
+                json_object_object_add(pathJ, "dirpath", json_object_new_string(dirPath));
+                json_object_object_add(pathJ, "basename", json_object_new_string(dirEnt->d_name));
+                json_object_array_add(responseJ, pathJ);
+            }
+        }
+    }
+    
+    free (dirList);
+   
+    if (!error)  afb_req_success(request,responseJ,NULL);
+    else {
+        char info[40];
+        snprintf (info, sizeof(info), "[%d] where not scanned", error); 
+         afb_req_success(request,responseJ, info);
+    } 
+    
+    return;
+}
+
 PUBLIC void ucs2_monitor (struct afb_req request) {
     
    afb_req_success(request,NULL,"UNICENS-to_be_done"); 
 }
+

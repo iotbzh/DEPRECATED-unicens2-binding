@@ -1,7 +1,10 @@
+var urlws;
+var urlhttp;
+
 AFB = function(base, initialtoken){
 
-var urlws = "ws://"+window.location.host+"/"+base;
-var urlhttp = "http://"+window.location.host+"/"+base;
+urlws = "ws://"+window.location.host+"/"+base;
+urlhttp = "http://"+window.location.host+"/"+base;
 
 /*********************************************/
 /****                                     ****/

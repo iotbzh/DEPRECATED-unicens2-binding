@@ -102,7 +102,26 @@
     }
   },
   "paths": {
-    "/configure": {
+    "/listconfig": {
+      "description": "List Config Files",
+      "get": {
+        "x-permissions": {
+          "$ref": "#/components/x-permissions/config"
+        },
+        "parameters": [
+          {
+            "in": "query",
+            "name": "cfgpath",
+            "required": false,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {"$ref": "#/components/responses/200"}
+        }
+      }
+    },
+    "/initialise": {
       "description": "configure Unicens2 lib from NetworkConfig.XML.",
       "get": {
         "x-permissions": {

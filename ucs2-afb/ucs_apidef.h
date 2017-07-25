@@ -24,19 +24,23 @@ static const char _afb_description_v2_UNICENS[] =
     "or\":{\"permission\":\"urn:AGL:permission:UNICENS:public:monitor\"}},\"r"
     "esponses\":{\"200\":{\"description\":\"A complex object array response\""
     ",\"content\":{\"application/json\":{\"schema\":{\"$ref\":\"#/components/"
-    "schemas/afb-reply\"}}}}}},\"paths\":{\"/configure\":{\"description\":\"c"
-    "onfigure Unicens2 lib from NetworkConfig.XML.\",\"get\":{\"x-permissions"
-    "\":{\"$ref\":\"#/components/x-permissions/config\"},\"parameters\":[{\"i"
-    "n\":\"query\",\"name\":\"filename\",\"required\":true,\"schema\":{\"type"
-    "\":\"string\"}}],\"responses\":{\"200\":{\"$ref\":\"#/components/respons"
-    "es/200\"}}}},\"/volume\":{\"description\":\"Set Master Volume.\",\"get\""
-    ":{\"x-permissions\":{\"$ref\":\"#/components/x-permissions/monitor\"},\""
-    "parameters\":[{\"in\":\"query\",\"name\":\"value\",\"required\":true,\"s"
-    "chema\":{\"type\":\"integer\"}}],\"responses\":{\"200\":{\"$ref\":\"#/co"
-    "mponents/responses/200\"}}}},\"/monitor\":{\"description\":\"Subscribe t"
-    "o Unicens Event.\",\"get\":{\"x-permissions\":{\"$ref\":\"#/components/x"
-    "-permissions/monitor\"},\"responses\":{\"200\":{\"$ref\":\"#/components/"
-    "responses/200\"}}}}}}"
+    "schemas/afb-reply\"}}}}}},\"paths\":{\"/listconfig\":{\"description\":\""
+    "List Config Files\",\"get\":{\"x-permissions\":{\"$ref\":\"#/components/"
+    "x-permissions/config\"},\"parameters\":[{\"in\":\"query\",\"name\":\"cfg"
+    "path\",\"required\":false,\"schema\":{\"type\":\"string\"}}],\"responses"
+    "\":{\"200\":{\"$ref\":\"#/components/responses/200\"}}}},\"/initialise\""
+    ":{\"description\":\"configure Unicens2 lib from NetworkConfig.XML.\",\"g"
+    "et\":{\"x-permissions\":{\"$ref\":\"#/components/x-permissions/config\"}"
+    ",\"parameters\":[{\"in\":\"query\",\"name\":\"filename\",\"required\":tr"
+    "ue,\"schema\":{\"type\":\"string\"}}],\"responses\":{\"200\":{\"$ref\":\""
+    "#/components/responses/200\"}}}},\"/volume\":{\"description\":\"Set Mast"
+    "er Volume.\",\"get\":{\"x-permissions\":{\"$ref\":\"#/components/x-permi"
+    "ssions/monitor\"},\"parameters\":[{\"in\":\"query\",\"name\":\"value\",\""
+    "required\":true,\"schema\":{\"type\":\"integer\"}}],\"responses\":{\"200"
+    "\":{\"$ref\":\"#/components/responses/200\"}}}},\"/monitor\":{\"descript"
+    "ion\":\"Subscribe to Unicens Event.\",\"get\":{\"x-permissions\":{\"$ref"
+    "\":\"#/components/x-permissions/monitor\"},\"responses\":{\"200\":{\"$re"
+    "f\":\"#/components/responses/200\"}}}}}}"
 ;
 
 static const struct afb_auth _afb_auths_v2_UNICENS[] = {
@@ -44,14 +48,22 @@ static const struct afb_auth _afb_auths_v2_UNICENS[] = {
 	{ .type = afb_auth_Permission, .text = "urn:AGL:permission:UNICENS:public:monitor" }
 };
 
- void ucs2_configure(struct afb_req req);
+ void ucs2_listconfig(struct afb_req req);
+ void ucs2_initialise(struct afb_req req);
  void ucs2_volume(struct afb_req req);
  void ucs2_monitor(struct afb_req req);
 
 static const struct afb_verb_v2 _afb_verbs_v2_UNICENS[] = {
     {
-        .verb = "configure",
-        .callback = ucs2_configure,
+        .verb = "listconfig",
+        .callback = ucs2_listconfig,
+        .auth = &_afb_auths_v2_UNICENS[0],
+        .info = NULL,
+        .session = AFB_SESSION_NONE_V2
+    },
+    {
+        .verb = "initialise",
+        .callback = ucs2_initialise,
         .auth = &_afb_auths_v2_UNICENS[0],
         .info = NULL,
         .session = AFB_SESSION_NONE_V2

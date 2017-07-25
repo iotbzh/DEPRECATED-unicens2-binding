@@ -74,6 +74,8 @@ add_compile_options()
 # ---------------------------------------------------------
 add_compile_options(-DCONTROL_CDEV_TX="/dev/inic-usb-ctx")
 add_compile_options(-DCONTROL_CDEV_RX="/dev/inic-usb-crx")
+add_compile_options(-DUCS2_CFG_PATH="/etc/default/ucs:./data")
+
 
 # LANG Specific compile flags set for all build types
 set(CMAKE_C_FLAGS "")
