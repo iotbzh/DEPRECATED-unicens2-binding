@@ -54,17 +54,17 @@ CSetup::CSetup()
         _volume_amp_272_r(0x272U, DEVICE_VAL_RIGHT, LIB_MOST_VOLUME_CH_SUB),
         _value_container()
 {
-    static CDeviceValue* value_list[3] = {  &_volume_amp_270_m,
+    static CDeviceValue* value_list[9] = {  &_volume_amp_270_m,
                                             &_volume_amp_270_l,
-                                            &_volume_amp_270_r/*,
+                                            &_volume_amp_270_r,
                                             &_volume_amp_271_m,
                                             &_volume_amp_271_l,
                                             &_volume_amp_271_r,
                                             &_volume_amp_272_m,
                                             &_volume_amp_272_l,
-                                            &_volume_amp_272_r*/};
+                                            &_volume_amp_272_r};
 
-    _value_container.RegisterValues(value_list, 3U);
+    _value_container.RegisterValues(value_list, 9U);
 }
 
 CSetup::~CSetup()
