@@ -6,9 +6,8 @@ Cloning Audio-Binding from Git
 -------------------------------------------------------
 
 ```
-git clone https://github.com/iotbzh/unicens2-binding
+git clone --recurse-submodules https://github.com/iotbzh/unicens2-binding
 cd  unicens2-binding
-git submodule update --recursive --init
 ```
 
 AFB_daemon dependency on Standard Linux Distributions
