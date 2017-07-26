@@ -39,6 +39,7 @@
 #define DEBUG_XRM
 #define BOARD_PMS_TX_SIZE       (72)
 #define CMD_QUEUE_LEN           (6)
+#define I2C_WRITE_MAX_LEN       (32)
 
 #include <string.h>
 #include <stdarg.h>
@@ -72,7 +73,10 @@ typedef enum
     UnicensCmd_Init,
     UnicensCmd_Stop,
     UnicensCmd_RmSetRoute,
-    UnicensCmd_NsRun
+    UnicensCmd_NsRun,
+    UnicensCmd_GpioCreatePort,
+    UnicensCmd_GpioWritePort,
+    UnicensCmd_I2CWrite
 } UnicensCmd_t;
 
 /**
@@ -105,12 +109,48 @@ typedef struct
  */
 typedef struct
 {
+    uint16_t destination;
+    uint16_t debounceTime;
+} UnicensCmdGpioCreatePort_t;
+
+/**
+ * \brief Internal struct for Unicens Integration
+ */
+typedef struct
+{
+    uint16_t destination;
+    uint16_t mask;
+    uint16_t data;
+} UnicensCmdGpioWritePort_t;
+
+/**
+ * \brief Internal struct for Unicens Integration
+ */
+typedef struct
+{
+    uint16_t destination;
+    bool isBurst;
+    uint8_t blockCount;
+    uint8_t slaveAddr;
+    uint16_t timeout;
+    uint8_t dataLen;
+    uint8_t data[I2C_WRITE_MAX_LEN];
+} UnicensCmdI2CWrite_t;
+
+/**
+ * \brief Internal struct for Unicens Integration
+ */
+typedef struct
+{
     UnicensCmd_t cmd;
     union
     {
         UnicensCmdInit_t Init;
         UnicensCmdRmSetRoute_t RmSetRoute;
         UnicensCmdNsRun_t NsRun;
+        UnicensCmdGpioCreatePort_t GpioCreatePort;
+        UnicensCmdGpioWritePort_t GpioWritePort;
+        UnicensCmdI2CWrite_t I2CWrite;
     } val;
 } UnicensCmdEntry_t;
 
