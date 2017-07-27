@@ -160,12 +160,43 @@ void UCSI_ReleaseAmsMessage(UCSI_Data_t *my);
  * \note Call this function only from single context (not from ISR)
  *
  * \param pPriv - private data section of this instance
- * \param routeId - identifier as given in XML file along with MOST socket
+ * \param routeId - identifier as given in XML file along with MOST socket (unique)
  * \param isActive - true, route will become active. false, route will be deallocated
  * 
  * \return true, if route was found and the specific command was enqueued to Unicens.
  */
 bool UCSI_SetRouteActive(UCSI_Data_t *pPriv, uint16_t routeId, bool isActive);
+
+/**
+ * \brief Enables or disables a route by the given routeId
+ * \note Call this function only from single context (not from ISR)
+ *
+ * \param pPriv - private data section of this instance
+ * \param targetAddress - targetAddress - The node / group target address
+ * \param isBurst - true, write blockCount I2C telegrams dataLen with a single call. false, write a single I2C message.
+ * \param blockCount - amount of blocks to write. Only used when isBurst is set to true.
+ * \param slaveAddr - The I2C address.
+ * \param timeout - Timeout in milliseconds.
+ * \param dataLen - Amount of bytes to send via I2C
+ * \param pData - The payload to be send.
+ *
+ * \return true, if route command was enqueued to Unicens.
+ */
+bool UCSI_I2CWrite(UCSI_Data_t *pPriv, uint16_t targetAddress, bool isBurst, uint8_t blockCount,
+    uint8_t slaveAddr, uint16_t timeout, uint8_t dataLen, uint8_t *pData);
+
+/**
+ * \brief Enables or disables a route by the given routeId
+ * \note Call this function only from single context (not from ISR)
+ *
+ * \param pPriv - private data section of this instance
+ * \param targetAddress - targetAddress - The node / group target address
+ * \param gpioPinId - INIC GPIO PIN starting with 0 for the first GPIO.
+ * \param isHighState - true, high state = 3,3V. false, low state = 0V.
+ *
+ * \return true, if GPIO command was enqueued to Unicens.
+ */
+bool UCSI_SetGpioState(UCSI_Data_t *pPriv, uint16_t targetAddress, uint8_t gpioPinId, bool isHighState);
 
 /*>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>*/
 /*                        CALLBACK SECTION                              */
@@ -238,6 +269,25 @@ extern void UCSI_CB_OnStop(void *pTag);
  * \param pTag - Pointer given by the integrator by UCSI_Init
  */
 extern void UCSI_CB_OnAmsMessageReceived(void *pTag);
+
+/**
+ * \brief Callback when a route become active / inactive.
+ * \note This function must be implemented by the integrator
+ * \param pTag - Pointer given by the integrator by UCSI_Init
+ * \param routeId - identifier as given in XML file along with MOST socket (unique)
+ * \param isActive - true, if the route is now in use. false, the route is not established.
+ */
+extern void UCSI_CB_OnRouteResult(void *pTag, uint16_t routeId, bool isActive);
+
+/**
+ * \brief Callback when a INIC GPIO changes its state
+ * \note This function must be implemented by the integrator
+ * \param pTag - Pointer given by the integrator by UCSI_Init
+ * \param nodeAddress - Node Address of the INIC sending the update.
+ * \param gpioPinId - INIC GPIO PIN starting with 0 for the first GPIO.
+ * \param isHighState - true, high state = 3,3V. false, low state = 0V.
+ */
+extern void UCSI_CB_OnGpioStateChange(void *pTag, uint16_t nodeAddress, uint8_t gpioPinId, bool isHighState);
 
 #ifdef __cplusplus
 }

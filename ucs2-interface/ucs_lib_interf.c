@@ -64,9 +64,15 @@ static void OnUnicensDebugXrmResources(Ucs_Xrm_ResourceType_t resource_type,
     Ucs_Rm_EndPoint_t *endpoint_inst_ptr, void *user_ptr);
 static void OnUcsInitResult(Ucs_InitResult_t result, void *user_ptr);
 static void OnUcsStopResult(Ucs_StdResult_t result, void *user_ptr);
+static void OnUcsGpioPortCreate(uint16_t node_address, uint16_t gpio_port_handle, Ucs_Gpio_Result_t result, void *user_ptr);
+static void OnUcsGpioPortWrite(uint16_t node_address, uint16_t gpio_port_handle, uint16_t current_state, uint16_t sticky_state, Ucs_Gpio_Result_t result, void *user_ptr);
 static void OnUcsMgrReport(Ucs_MgrReport_t code, uint16_t node_address, Ucs_Rm_Node_t *node_ptr, void *user_ptr);
 static void OnUcsNsRun(Ucs_Rm_Node_t * node_ptr, Ucs_Ns_ResultCode_t result, void *ucs_user_ptr);
 static void OnUcsAmsRxMsgReceived(void *user_ptr);
+static void OnUcsGpioTriggerEventStatus(uint16_t node_address, uint16_t gpio_port_handle,
+    uint16_t rising_edges, uint16_t falling_edges, uint16_t levels, void * user_ptr);
+static void OnUcsI2CWrite(uint16_t node_address, uint16_t i2c_port_handle,
+    uint8_t i2c_slave_address, uint8_t data_len, Ucs_I2c_Result_t result, void *user_ptr);
 
 /************************************************************************/
 /* Public Function Implementations                                      */
@@ -115,6 +121,8 @@ void UCSI_Init(UCSI_Data_t *my, void *pTag)
     my->uniInitData.rm.report_fptr = &OnUnicensRoutingResult;
     my->uniInitData.rm.xrm.most_port_status_fptr = &OnUnicensMostPortStatus;
     my->uniInitData.rm.debug_resource_status_fptr = &OnUnicensDebugXrmResources;
+
+    my->uniInitData.gpio.trigger_event_status_fptr = &OnUcsGpioTriggerEventStatus;
 
     RB_Init(&my->rb, CMD_QUEUE_LEN, sizeof(UnicensCmdEntry_t), my->rbBuf);
 }
@@ -197,6 +205,26 @@ void UCSI_Service(UCSI_Data_t *my)
             if (UCS_RET_SUCCESS != Ucs_Ns_Run(my->unicens, e->val.NsRun.node_ptr, OnUcsNsRun))
                 UCSI_CB_OnUserMessage(my->tag, true, "Ucs_Ns_Run failed", 0);
             break;
+        case UnicensCmd_GpioCreatePort:
+            if (UCS_RET_SUCCESS == Ucs_Gpio_CreatePort(my->unicens, e->val.GpioCreatePort.destination, 0, e->val.GpioCreatePort.debounceTime, OnUcsGpioPortCreate))
+                popEntry = false;
+            else
+                UCSI_CB_OnUserMessage(my->tag, true, "Ucs_Gpio_CreatePort failed", 0);
+            break;
+        case UnicensCmd_GpioWritePort:
+            if (UCS_RET_SUCCESS == Ucs_Gpio_WritePort(my->unicens, e->val.GpioWritePort.destination, 0x1D00, e->val.GpioWritePort.mask, e->val.GpioWritePort.data, OnUcsGpioPortWrite))
+                popEntry = false;
+            else
+                UCSI_CB_OnUserMessage(my->tag, true, "UnicensCmd_GpioWritePort failed", 0);
+            break;
+        case UnicensCmd_I2CWrite:
+            if (UCS_RET_SUCCESS == Ucs_I2c_WritePort(my->unicens, e->val.I2CWrite.destination, 0x0F00, 
+                (e->val.I2CWrite.isBurst ? UCS_I2C_BURST_MODE : UCS_I2C_DEFAULT_MODE), e->val.I2CWrite.blockCount,
+                e->val.I2CWrite.slaveAddr, e->val.I2CWrite.timeout, e->val.I2CWrite.dataLen, e->val.I2CWrite.data, OnUcsI2CWrite))
+                popEntry = false;
+            else
+                UCSI_CB_OnUserMessage(my->tag, true, "Ucs_Gpio_CreatePort failed", 0);
+            break;
         default:
             assert(false);
             break;
@@ -277,6 +305,38 @@ bool UCSI_SetRouteActive(UCSI_Data_t *my, uint16_t routeId, bool isActive)
         return EnqueueCommand(my, &entry);
     }
     return false;
+}
+
+bool UCSI_I2CWrite(UCSI_Data_t *my, uint16_t targetAddress, bool isBurst, uint8_t blockCount,
+    uint8_t slaveAddr, uint16_t timeout, uint8_t dataLen, uint8_t *pData)
+{
+    UnicensCmdEntry_t entry;
+    assert(MAGIC == my->magic);
+    if (NULL == my || NULL == pData || 0 == dataLen) return false;
+    if (dataLen > I2C_WRITE_MAX_LEN) return false;
+    entry.cmd = UnicensCmd_I2CWrite;
+    entry.val.I2CWrite.destination = targetAddress;
+    entry.val.I2CWrite.isBurst = isBurst;
+    entry.val.I2CWrite.blockCount = blockCount;
+    entry.val.I2CWrite.slaveAddr = slaveAddr;
+    entry.val.I2CWrite.timeout = timeout;
+    entry.val.I2CWrite.dataLen = dataLen;
+    memcpy(entry.val.I2CWrite.data, pData, dataLen);
+    return EnqueueCommand(my, &entry);
+}
+
+bool UCSI_SetGpioState(UCSI_Data_t *my, uint16_t targetAddress, uint8_t gpioPinId, bool isHighState)
+{
+    uint16_t mask;
+    UnicensCmdEntry_t entry;
+    assert(MAGIC == my->magic);
+    if (NULL == my) return false;
+    mask = 1 << gpioPinId;
+    entry.cmd = UnicensCmd_GpioWritePort;
+    entry.val.GpioWritePort.destination = targetAddress;
+    entry.val.GpioWritePort.mask = mask;
+    entry.val.GpioWritePort.data = isHighState ? mask : 0;
+    return EnqueueCommand(my, &entry);
 }
 
 /************************************************************************/
@@ -488,10 +548,9 @@ static void OnLldCtrlTxTransmitC( Ucs_Lld_TxMsg_t *msg_ptr, void *lld_user_ptr )
 
 static void OnUnicensRoutingResult(Ucs_Rm_Route_t* route_ptr, Ucs_Rm_RouteInfos_t route_infos, void *user_ptr)
 {
-    /*TODO: implement*/
-    route_ptr = route_ptr;
-    route_infos = route_infos;
-    user_ptr = user_ptr;
+    UCSI_Data_t *my = (UCSI_Data_t *)user_ptr;
+    assert(MAGIC == my->magic);
+    UCSI_CB_OnRouteResult(my->tag, route_ptr->route_id, UCS_RM_ROUTE_INFOS_BUILT == route_infos);
 }
 
 static void OnUnicensMostPortStatus(uint16_t most_port_handle,
@@ -668,17 +727,24 @@ static void OnUcsStopResult(Ucs_StdResult_t result, void *user_ptr)
     UCSI_CB_OnStop(my->tag);
 }
 
+static void OnUcsGpioPortCreate(uint16_t node_address, uint16_t gpio_port_handle, Ucs_Gpio_Result_t result, void *user_ptr)
+{
+    UCSI_Data_t *my = (UCSI_Data_t *)user_ptr;
+    assert(MAGIC == my->magic);
+    OnCommandExecuted(my, UnicensCmd_GpioCreatePort);
+}
+
+static void OnUcsGpioPortWrite(uint16_t node_address, uint16_t gpio_port_handle, uint16_t current_state, uint16_t sticky_state, Ucs_Gpio_Result_t result, void *user_ptr)
+{
+    UCSI_Data_t *my = (UCSI_Data_t *)user_ptr;
+    assert(MAGIC == my->magic);
+    OnCommandExecuted(my, UnicensCmd_GpioWritePort);
+}
+
 static void OnUcsMgrReport(Ucs_MgrReport_t code, uint16_t node_address, Ucs_Rm_Node_t *node_ptr, void *user_ptr)
 {
     UCSI_Data_t *my = (UCSI_Data_t *)user_ptr;
     assert(MAGIC == my->magic);
-    if (node_ptr && node_ptr->script_list_ptr && node_ptr->script_list_size)
-    {
-        UnicensCmdEntry_t e;
-        e.cmd = UnicensCmd_NsRun;
-        e.val.NsRun.node_ptr = node_ptr;
-        EnqueueCommand(my, &e);
-    }
     switch (code)
     {
     case UCS_MGR_REP_IGNORED_UNKNOWN:
@@ -688,8 +754,23 @@ static void OnUcsMgrReport(Ucs_MgrReport_t code, uint16_t node_address, Ucs_Rm_N
         UCSI_CB_OnUserMessage(my->tag, true, "Node=%X: Ignored, because duplicated", 1, node_address);
         break;
     case UCS_MGR_REP_AVAILABLE:
+    {
+        UnicensCmdEntry_t e;
         UCSI_CB_OnUserMessage(my->tag, false, "Node=%X: Available", 1, node_address);
+        /* Enable usage of remote GPIO ports */
+        e.cmd = UnicensCmd_GpioCreatePort;
+        e.val.GpioCreatePort.destination = node_address;
+        e.val.GpioCreatePort.debounceTime = 20;
+        EnqueueCommand(my, &e);
+        /* Execute scripts, if there are any */
+        if (node_ptr && node_ptr->script_list_ptr && node_ptr->script_list_size)
+        {
+            e.cmd = UnicensCmd_NsRun;
+            e.val.NsRun.node_ptr = node_ptr;
+            EnqueueCommand(my, &e);
+        }
         break;
+    }
     case UCS_MGR_REP_NOT_AVAILABLE:
         UCSI_CB_OnUserMessage(my->tag, false, "Node=%X: Not available", 1, node_address);
         break;
@@ -720,6 +801,31 @@ static void OnUcsAmsRxMsgReceived(void *user_ptr)
     UCSI_Data_t *my = (UCSI_Data_t *)user_ptr;
     assert(MAGIC == my->magic);
     UCSI_CB_OnAmsMessageReceived(my->tag);
+}
+
+static void OnUcsGpioTriggerEventStatus(uint16_t node_address, uint16_t gpio_port_handle,
+    uint16_t rising_edges, uint16_t falling_edges, uint16_t levels, void * user_ptr)
+{
+    uint8_t i;
+    UCSI_Data_t *my = (UCSI_Data_t *)user_ptr;
+    assert(MAGIC == my->magic);
+    for (i = 0; i < 16; i++)
+    {
+        if (0 != ((rising_edges >> i) & 0x1))
+            UCSI_CB_OnGpioStateChange(my->tag, node_address, i, true);
+        if (0 != ((falling_edges >> i) & 0x1))
+            UCSI_CB_OnGpioStateChange(my->tag, node_address, i, false);
+    }
+}
+
+static void OnUcsI2CWrite(uint16_t node_address, uint16_t i2c_port_handle,
+    uint8_t i2c_slave_address, uint8_t data_len, Ucs_I2c_Result_t result, void *user_ptr)
+{
+    UCSI_Data_t *my = (UCSI_Data_t *)user_ptr;
+    assert(MAGIC == my->magic);
+    OnCommandExecuted(my, UnicensCmd_I2CWrite);
+    if (UCS_I2C_RES_SUCCESS != result.code)
+        UCSI_CB_OnUserMessage(my->tag, true, "Remote I2C Write to node=0x%X failed", 1, node_address);
 }
 
 /*----------------------------------------

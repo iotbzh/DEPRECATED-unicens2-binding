@@ -1158,12 +1158,11 @@ static ParseResult_t ParseScriptMsgSend(mxml_node_t *act, Ucs_Ns_Script_t *scr, 
     if (!GetUInt8(act, OP_TYPE_REQUEST, &req->OpCode, true))
         RETURN_ASSERT(Parse_XmlError);
 
-    if (!GetUInt8(act, OP_TYPE_RESPONSE, &res->OpCode, true))
-        RETURN_ASSERT(Parse_XmlError);
-
     res->FBlockId = req->FBlockId;
     res->FunktId = req->FunktId;
-    GetPayload(act, PAYLOAD_RES_HEX, &res->DataPtr, &res->DataLen, 0, &priv->objList, false);
+
+    if (GetUInt8(act, OP_TYPE_RESPONSE, &res->OpCode, false))
+        GetPayload(act, PAYLOAD_RES_HEX, &res->DataPtr, &res->DataLen, 0, &priv->objList, false);
 
     if (!GetPayload(act, PAYLOAD_REQ_HEX, &req->DataPtr, &req->DataLen, 0, &priv->objList, true))
         RETURN_ASSERT(Parse_XmlError);

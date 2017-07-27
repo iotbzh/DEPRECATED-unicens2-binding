@@ -193,6 +193,14 @@ void UCSI_CB_OnAmsMessageReceived(void *pTag)
 	   Don't forget to call UCSI_ReleaseAmsMessage after that */
 }
 
+void UCSI_CB_OnRouteResult(void *pTag, uint16_t routeId, bool isActive)
+{
+}
+
+void UCSI_CB_OnGpioStateChange(void *pTag, uint16_t nodeAddress, uint8_t gpioPinId, bool isHighState)
+{
+}
+
 bool Cdev_Init(CdevData_t *d, const char *fileName, bool read, bool write)
 {
     if (NULL == d || NULL == fileName)  goto OnErrorExit;
