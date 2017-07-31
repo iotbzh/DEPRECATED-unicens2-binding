@@ -65,6 +65,8 @@ typedef struct {
 
 static ucsContextT *ucsContextS;
 
+STATIC void ucs2_write_i2c_response(void *result_ptr, void *request_ptr);
+
 PUBLIC void UcsXml_CB_OnError(const char format[], uint16_t vargsCnt, ...) {
     /*AFB_DEBUG (afbIface, format, args); */
     va_list args;
@@ -612,11 +614,34 @@ PUBLIC void ucs2_write_i2c (struct afb_req request) {
                   0x2Au,                /* i2c slave address */
                   0x03E8u,              /* timeout 1000 milliseconds */
                   tx_payload_sz,        /* uint8_t dataLen */
-                  &tx_payload[0]        /* uint8_t *pData */
+                  &tx_payload[0],       /* uint8_t *pData */
+                  ucs2_write_i2c_response,
+                  (void*)&request
                 );  
     
     afb_req_success(request,NULL,"done!!!");
     
  OnErrorExit:
     return;
+}
+
+STATIC void ucs2_write_i2c_response(void *result_ptr, void *request_ptr) {
+    
+    if (request_ptr){
+        afb_req *req = (afb_req *)request_ptr;
+        Ucs_I2c_ResultCode_t *res = (Ucs_I2c_ResultCode_t *)result_ptr;
+        
+        if (!res) {
+            afb_req_fail(*req, NULL,"failure, result code not provided");
+        }
+        else if (*res != UCS_I2C_RES_SUCCESS){
+            afb_req_fail_f(*req, NULL, "failure, result code: %d", *res);
+        }
+        else {
+            afb_req_success(*req, NULL, "success");
+        }
+    } 
+    else {
+        AFB_NOTICE("write_i2c: ambiguous response data");
+    }
 }

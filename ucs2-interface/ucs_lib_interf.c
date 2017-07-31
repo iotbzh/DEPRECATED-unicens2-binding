@@ -308,7 +308,8 @@ bool UCSI_SetRouteActive(UCSI_Data_t *my, uint16_t routeId, bool isActive)
 }
 
 bool UCSI_I2CWrite(UCSI_Data_t *my, uint16_t targetAddress, bool isBurst, uint8_t blockCount,
-    uint8_t slaveAddr, uint16_t timeout, uint8_t dataLen, uint8_t *pData)
+    uint8_t slaveAddr, uint16_t timeout, uint8_t dataLen, uint8_t *pData, 
+    Ucsi_ResultCb_t result_fptr, void *request_ptr)
 {
     UnicensCmdEntry_t entry;
     assert(MAGIC == my->magic);
@@ -321,6 +322,8 @@ bool UCSI_I2CWrite(UCSI_Data_t *my, uint16_t targetAddress, bool isBurst, uint8_
     entry.val.I2CWrite.slaveAddr = slaveAddr;
     entry.val.I2CWrite.timeout = timeout;
     entry.val.I2CWrite.dataLen = dataLen;
+    entry.val.I2CWrite.result_fptr = result_fptr;
+    entry.val.I2CWrite.request_ptr = request_ptr;
     memcpy(entry.val.I2CWrite.data, pData, dataLen);
     return EnqueueCommand(my, &entry);
 }

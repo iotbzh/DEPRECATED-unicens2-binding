@@ -179,11 +179,14 @@ bool UCSI_SetRouteActive(UCSI_Data_t *pPriv, uint16_t routeId, bool isActive);
  * \param timeout - Timeout in milliseconds.
  * \param dataLen - Amount of bytes to send via I2C
  * \param pData - The payload to be send.
+ * \param result_fptr - Callback function notifying the asynchronous result.
+ * \param request_ptr - User reference which is provided for the asynchronous result.
  *
  * \return true, if route command was enqueued to Unicens.
  */
 bool UCSI_I2CWrite(UCSI_Data_t *pPriv, uint16_t targetAddress, bool isBurst, uint8_t blockCount,
-    uint8_t slaveAddr, uint16_t timeout, uint8_t dataLen, uint8_t *pData);
+    uint8_t slaveAddr, uint16_t timeout, uint8_t dataLen, uint8_t *pData,
+    Ucsi_ResultCb_t result_fptr, void *request_ptr);
 
 /**
  * \brief Enables or disables a route by the given routeId
