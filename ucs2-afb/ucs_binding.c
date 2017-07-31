@@ -537,3 +537,62 @@ PUBLIC void ucs2_monitor (struct afb_req request) {
    afb_req_success(request,NULL,"UNICENS-to_be_done"); 
 }
 
+#define MUTE_VALUE      0x03FFU
+#define MUTE_VALUE_HB   0x03U
+#define MUTE_VALUE_LB   0xFFU
+
+#define CONTROL_MASTER  0x07U
+#define CONTROL_CH_1    0x08U
+#define CONTROL_CH_2    0x09U
+
+PUBLIC void ucs2_write_i2c (struct afb_req request) {
+    
+    /*const uint16_t MUTE_VALUE     = 0x03FFU;*/
+    /*const uint8_t MUTE_VALUE_HB   = 0x03U;*/
+    /*const uint8_t MUTE_VALUE_LB   = 0xFFU;*/
+
+    /*const uint8_t CONTROL_MASTER  = 0x07U;*/
+    /*const uint8_t CONTROL_CH_1    = 0x08U;*/
+    /*const uint8_t CONTROL_CH_2    = 0x09U;*/
+    
+    struct json_object *j_obj, *temp;
+    static uint8_t tx_payload[3] = {CONTROL_MASTER, MUTE_VALUE_HB, MUTE_VALUE_LB};
+    uint16_t node_addr = 0;
+    
+    /* check UNICENS is initialised */
+    if (!ucsContextS) {
+        afb_req_fail_f (request, "unicens-init","Should Load Config before using setvol");
+        goto OnErrorExit;
+    }
+
+    j_obj = afb_req_json(request);
+    if (!j_obj) {
+        afb_req_fail_f (request, "query-notjson","query=%s not a valid json entry", afb_req_value(request,""));
+        goto OnErrorExit;
+    };
+    
+    node_addr = (uint16_t)json_object_get_int(json_object_object_get(j_obj, "node"));
+    AFB_NOTICE ("node_addr: 0x%02X", node_addr);
+    
+    if (node_addr == 0) {
+        afb_req_fail_f (request, "query-params","params wrong or missing");
+        goto OnErrorExit;
+    }
+        
+        
+    UCSI_I2CWrite(&ucsContextS->ucsiData,/*UCSI_Data_t *pPriv*/
+                  node_addr,            /*uint16_t targetAddress*/
+                  false,                /*bool isBurst*/
+                  0u,                   /* block count */
+                  0x2Au,                /* i2c slave address */
+                  0x03E8u,              /* timeout 1000 milliseconds */
+                  3,                    /* uint8_t dataLen */
+                  &tx_payload[0]        /* uint8_t *pData */
+                );
+    
+    
+    afb_req_success(request,NULL,"done!!!");
+    
+ OnErrorExit:
+    return;
+}

@@ -169,6 +169,25 @@
           "200": {"$ref": "#/components/responses/200"}
         }
       }
+    },
+    "/write_i2c": {
+      "description": "Writes I2C command to remote node.",
+      "get": {
+        "x-permissions": {
+          "$ref": "#/components/x-permissions/monitor"
+        },
+        "parameters": [
+          {
+            "in": "query",
+            "name": "command",
+            "required": true,
+            "schema": { "node": "integer" }
+          }
+        ],
+        "responses": {
+          "200": {"$ref": "#/components/responses/200"}
+        }
+      }
     }
   }
 }

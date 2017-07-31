@@ -23,11 +23,20 @@
     <li><button onclick="callbinder('unicens','volume', {channel:'master', volume: 200})">Set Master Volume to 200</button></li>
     <li><button onclick="callbinder('unicens','volume', {channel:'master', volume: 185})">Set Master Volume to 185</button></li>
     <li><button onclick="callbinder('unicens','volume', {channel:'master', volume: 0})">Set Master Volume to 0</button></li>
+    </ol>
     <br>
+    <ol>
     <li><button onclick="callbinder('UNICENS','volume', [[0,200], [1,255]])">Set left=200 right=250</button></li>
     <li><button onclick="callbinder('UNICENS','volume', [[0,255], [1,200]])">Set right=250 left=200</button></li>
     <li><button onclick="callbinder('UNICENS','volume', [[0,255], [1,255]])">Set right=255 left=255</button></li>
     </ol>
+    <br>
+    <ol>
+    <li><button onclick="callbinder('UNICENS','write_i2c', {node :0x270})">Write I2C to 0x270 (mute)</button></li>
+    <li><button onclick="callbinder('UNICENS','write_i2c', {node :0x271})">Write I2C to 0x271 (mute)</button></li>
+    <li><button onclick="callbinder('UNICENS','write_i2c', {node :0x272})">Write I2C to 0x272 (mute)</button></li>
+    </ol>
+    <br>
     <br>
     <div id="main" style="visibility:hidden">
     <ol>

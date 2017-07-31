@@ -223,7 +223,7 @@ void UCSI_Service(UCSI_Data_t *my)
                 e->val.I2CWrite.slaveAddr, e->val.I2CWrite.timeout, e->val.I2CWrite.dataLen, e->val.I2CWrite.data, OnUcsI2CWrite))
                 popEntry = false;
             else
-                UCSI_CB_OnUserMessage(my->tag, true, "Ucs_Gpio_CreatePort failed", 0);
+                UCSI_CB_OnUserMessage(my->tag, true, "Ucs_I2c_WritePort failed", 0);
             break;
         default:
             assert(false);

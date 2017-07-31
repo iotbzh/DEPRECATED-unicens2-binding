@@ -40,7 +40,12 @@ static const char _afb_description_v2_UNICENS[] =
     "\":{\"$ref\":\"#/components/responses/200\"}}}},\"/monitor\":{\"descript"
     "ion\":\"Subscribe to Unicens Event.\",\"get\":{\"x-permissions\":{\"$ref"
     "\":\"#/components/x-permissions/monitor\"},\"responses\":{\"200\":{\"$re"
-    "f\":\"#/components/responses/200\"}}}}}}"
+    "f\":\"#/components/responses/200\"}}}},\"/write_i2c\":{\"description\":\""
+    "Writes I2C command to remote node.\",\"get\":{\"x-permissions\":{\"$ref\""
+    ":\"#/components/x-permissions/monitor\"},\"parameters\":[{\"in\":\"query"
+    "\",\"name\":\"command\",\"required\":true,\"schema\":{\"node\":\"integer"
+    "\"}}],\"responses\":{\"200\":{\"$ref\":\"#/components/responses/200\"}}}"
+    "}}}"
 ;
 
 static const struct afb_auth _afb_auths_v2_UNICENS[] = {
@@ -52,6 +57,7 @@ static const struct afb_auth _afb_auths_v2_UNICENS[] = {
  void ucs2_initialise(struct afb_req req);
  void ucs2_volume(struct afb_req req);
  void ucs2_monitor(struct afb_req req);
+ void ucs2_write_i2c(struct afb_req req);
 
 static const struct afb_verb_v2 _afb_verbs_v2_UNICENS[] = {
     {
@@ -78,6 +84,13 @@ static const struct afb_verb_v2 _afb_verbs_v2_UNICENS[] = {
     {
         .verb = "monitor",
         .callback = ucs2_monitor,
+        .auth = &_afb_auths_v2_UNICENS[1],
+        .info = NULL,
+        .session = AFB_SESSION_NONE_V2
+    },
+    {
+        .verb = "write_i2c",
+        .callback = ucs2_write_i2c,
         .auth = &_afb_auths_v2_UNICENS[1],
         .info = NULL,
         .session = AFB_SESSION_NONE_V2
