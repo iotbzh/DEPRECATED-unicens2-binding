@@ -179,9 +179,22 @@
         "parameters": [
           {
             "in": "query",
-            "name": "command",
+            "name": "node_address",
             "required": true,
-            "schema": { "node": "integer" }
+            "schema": { 
+                "type": "integer",
+                "format": "int32"
+            }
+          },
+          {
+            "in": "query",
+            "name": "i2c_data",
+            "required": true,
+            "schema": { 
+                "type": "array",
+                "format": "int32"
+            },
+            "style": "simple"
           }
         ],
         "responses": {

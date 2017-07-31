@@ -43,9 +43,11 @@ static const char _afb_description_v2_UNICENS[] =
     "f\":\"#/components/responses/200\"}}}},\"/write_i2c\":{\"description\":\""
     "Writes I2C command to remote node.\",\"get\":{\"x-permissions\":{\"$ref\""
     ":\"#/components/x-permissions/monitor\"},\"parameters\":[{\"in\":\"query"
-    "\",\"name\":\"command\",\"required\":true,\"schema\":{\"node\":\"integer"
-    "\"}}],\"responses\":{\"200\":{\"$ref\":\"#/components/responses/200\"}}}"
-    "}}}"
+    "\",\"name\":\"node_address\",\"required\":true,\"schema\":{\"type\":\"in"
+    "teger\",\"format\":\"int32\"}},{\"in\":\"query\",\"name\":\"i2c_data\",\""
+    "required\":true,\"schema\":{\"type\":\"array\",\"format\":\"int32\"},\"s"
+    "tyle\":\"simple\"}],\"responses\":{\"200\":{\"$ref\":\"#/components/resp"
+    "onses/200\"}}}}}}"
 ;
 
 static const struct afb_auth _afb_auths_v2_UNICENS[] = {

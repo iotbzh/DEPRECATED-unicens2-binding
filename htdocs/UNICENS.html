@@ -32,9 +32,9 @@
     </ol>
     <br>
     <ol>
-    <li><button onclick="callbinder('UNICENS','write_i2c', {node :0x270})">Write I2C to 0x270 (mute)</button></li>
-    <li><button onclick="callbinder('UNICENS','write_i2c', {node :0x271})">Write I2C to 0x271 (mute)</button></li>
-    <li><button onclick="callbinder('UNICENS','write_i2c', {node :0x272})">Write I2C to 0x272 (mute)</button></li>
+    <li><button onclick="callbinder('UNICENS','write_i2c', {node_address: 0x270, i2c_data:[0x07,0x03,0xFF]})">Write I2C to 0x270 (mute)</button></li>
+    <li><button onclick="callbinder('UNICENS','write_i2c', {node_address: 0x271, i2c_data:[0x07,0x03,0xFF]})">Write I2C to 0x271 (mute)</button></li>
+    <li><button onclick="callbinder('UNICENS','write_i2c', {node_address: 0x272, i2c_data:[0x07,0x03,0xFF]})">Write I2C to 0x272 (mute)</button></li>
     </ol>
     <br>
     <br>
