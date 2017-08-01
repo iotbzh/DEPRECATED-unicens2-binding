@@ -555,6 +555,7 @@ PUBLIC void ucs2_write_i2c (struct afb_req request) {
     static uint8_t tx_payload[UCSB_I2C_MAX_PAYLOAD];
     uint8_t tx_payload_sz = 0;
     uint16_t node_addr = 0;
+    struct afb_req *async_req_ptr = NULL;
     
     /* check UNICENS is initialised */
     if (!ucsContextS) {
@@ -606,20 +607,31 @@ PUBLIC void ucs2_write_i2c (struct afb_req request) {
         afb_req_fail_f(request, "query-params","params wrong or missing");
         goto OnErrorExit;
     }
-        
-    UCSI_I2CWrite(&ucsContextS->ucsiData,/*UCSI_Data_t *pPriv*/
-                  node_addr,            /*uint16_t targetAddress*/
-                  false,                /*bool isBurst*/
-                  0u,                   /* block count */
-                  0x2Au,                /* i2c slave address */
-                  0x03E8u,              /* timeout 1000 milliseconds */
-                  tx_payload_sz,        /* uint8_t dataLen */
-                  &tx_payload[0],       /* uint8_t *pData */
-                  ucs2_write_i2c_response,
-                  (void*)&request
-                );  
     
-    afb_req_success(request,NULL,"done!!!");
+    async_req_ptr = malloc(sizeof(afb_req));
+    *async_req_ptr = request;
+    
+    if (UCSI_I2CWrite(  &ucsContextS->ucsiData,   /*UCSI_Data_t *pPriv*/
+                        node_addr,                /*uint16_t targetAddress*/
+                        false,                    /*bool isBurst*/
+                        0u,                       /* block count */
+                        0x2Au,                    /* i2c slave address */
+                        0x03E8u,                  /* timeout 1000 milliseconds */
+                        tx_payload_sz,            /* uint8_t dataLen */
+                        &tx_payload[0],           /* uint8_t *pData */
+                        &ucs2_write_i2c_response, /* callback*/
+                        (void*)async_req_ptr      /* callback argument */
+                  )) {
+        /* asynchronous command is running */
+        afb_req_addref(request);
+    }
+    else {
+        AFB_NOTICE("i2c_data: scheduling command failed");
+        afb_req_fail_f(request, "query-command-queue","command queue overload");
+        free(async_req_ptr);
+        async_req_ptr = NULL;
+        goto OnErrorExit;
+    }
     
  OnErrorExit:
     return;
@@ -632,14 +644,17 @@ STATIC void ucs2_write_i2c_response(void *result_ptr, void *request_ptr) {
         Ucs_I2c_ResultCode_t *res = (Ucs_I2c_ResultCode_t *)result_ptr;
         
         if (!res) {
-            afb_req_fail(*req, NULL,"failure, result code not provided");
+            afb_req_fail(*req, "processing","busy or lost initialization");
         }
         else if (*res != UCS_I2C_RES_SUCCESS){
-            afb_req_fail_f(*req, NULL, "failure, result code: %d", *res);
+            afb_req_fail_f(*req, "error-result", "result code: %d", *res);
         }
         else {
             afb_req_success(*req, NULL, "success");
         }
+        
+        afb_req_unref(*req);
+        free(request_ptr);
     } 
     else {
         AFB_NOTICE("write_i2c: ambiguous response data");

@@ -222,8 +222,11 @@ void UCSI_Service(UCSI_Data_t *my)
                 (e->val.I2CWrite.isBurst ? UCS_I2C_BURST_MODE : UCS_I2C_DEFAULT_MODE), e->val.I2CWrite.blockCount,
                 e->val.I2CWrite.slaveAddr, e->val.I2CWrite.timeout, e->val.I2CWrite.dataLen, e->val.I2CWrite.data, OnUcsI2CWrite))
                 popEntry = false;
-            else
+            else {
                 UCSI_CB_OnUserMessage(my->tag, true, "Ucs_I2c_WritePort failed", 0);
+                assert(e->val.I2CWrite.result_fptr != NULL);
+                e->val.I2CWrite.result_fptr(NULL /*processing error*/, e->val.I2CWrite.request_ptr);
+            }
             break;
         default:
             assert(false);
@@ -826,6 +829,16 @@ static void OnUcsI2CWrite(uint16_t node_address, uint16_t i2c_port_handle,
 {
     UCSI_Data_t *my = (UCSI_Data_t *)user_ptr;
     assert(MAGIC == my->magic);
+    
+    if ((my->currentCmd->cmd == UnicensCmd_I2CWrite) 
+        && (my->currentCmd->val.I2CWrite.result_fptr)) {
+        
+        my->currentCmd->val.I2CWrite.result_fptr(&result.code, my->currentCmd->val.I2CWrite.request_ptr);
+    }
+    else {
+        assert(false);
+    }
+    
     OnCommandExecuted(my, UnicensCmd_I2CWrite);
     if (UCS_I2C_RES_SUCCESS != result.code)
         UCSI_CB_OnUserMessage(my->tag, true, "Remote I2C Write to node=0x%X failed", 1, node_address);
