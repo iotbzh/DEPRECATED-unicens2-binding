@@ -170,7 +170,7 @@
         }
       }
     },
-    "/write_i2c": {
+    "/writei2c": {
       "description": "Writes I2C command to remote node.",
       "get": {
         "x-permissions": {
@@ -179,7 +179,7 @@
         "parameters": [
           {
             "in": "query",
-            "name": "node_address",
+            "name": "node",
             "required": true,
             "schema": { 
                 "type": "integer",
@@ -188,7 +188,7 @@
           },
           {
             "in": "query",
-            "name": "i2c_data",
+            "name": "data",
             "required": true,
             "schema": { 
                 "type": "array",

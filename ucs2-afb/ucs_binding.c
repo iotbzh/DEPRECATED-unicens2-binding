@@ -23,6 +23,7 @@
 
 #define BUFFER_FRAME_COUNT 10 /* max frames in buffer */
 #define WAIT_TIMER_US 1000000 /* default waiting timer 1s */
+#define I2C_MAX_DATA_SZ    32 /* max. number of bytes to be written to i2c */
 
 #include <systemd/sd-event.h>
 #include <sys/types.h>
@@ -38,8 +39,6 @@
 
 #include "ucs_binding.h"
 #include "ucs_interface.h"
-
-
 
 #define MAX_FILENAME_LEN (100)
 #define RX_BUFFER (64)
@@ -64,8 +63,6 @@ typedef struct {
 } ucsContextT;
 
 static ucsContextT *ucsContextS;
-
-STATIC void ucs2_write_i2c_response(void *result_ptr, void *request_ptr);
 
 PUBLIC void UcsXml_CB_OnError(const char format[], uint16_t vargsCnt, ...) {
     /*AFB_DEBUG (afbIface, format, args); */
@@ -539,105 +536,7 @@ PUBLIC void ucs2_monitor (struct afb_req request) {
    afb_req_success(request,NULL,"UNICENS-to_be_done"); 
 }
 
-#define MUTE_VALUE      0x03FFU
-#define MUTE_VALUE_HB   0x03U
-#define MUTE_VALUE_LB   0xFFU
-
-#define CONTROL_MASTER  0x07U
-#define CONTROL_CH_1    0x08U
-#define CONTROL_CH_2    0x09U
-
-#define UCSB_I2C_MAX_PAYLOAD     32
-
-PUBLIC void ucs2_write_i2c (struct afb_req request) {
-    
-    struct json_object *j_obj;
-    static uint8_t tx_payload[UCSB_I2C_MAX_PAYLOAD];
-    uint8_t tx_payload_sz = 0;
-    uint16_t node_addr = 0;
-    struct afb_req *async_req_ptr = NULL;
-    
-    /* check UNICENS is initialised */
-    if (!ucsContextS) {
-        afb_req_fail_f(request, "unicens-init","Should Load Config before using setvol");
-        goto OnErrorExit;
-    }
-
-    j_obj = afb_req_json(request);
-    if (!j_obj) {
-        afb_req_fail_f(request, "query-notjson","query=%s not a valid json entry", afb_req_value(request,""));
-        goto OnErrorExit;
-    };
-    
-    node_addr = (uint16_t)json_object_get_int(json_object_object_get(j_obj, "node_address"));
-    AFB_NOTICE("node_address: 0x%02X", node_addr);
-    
-    if (node_addr == 0) {
-        afb_req_fail_f(request, "query-params","params wrong or missing");
-        goto OnErrorExit;
-    }
-       
-    if (json_object_get_type(json_object_object_get(j_obj, "i2c_data"))==json_type_array) {
-        int size = json_object_array_length(json_object_object_get(j_obj, "i2c_data"));
-        if ((size > 0) && (size <= UCSB_I2C_MAX_PAYLOAD)) {
-            
-            int32_t i;
-            int32_t val;
-            struct json_object *j_elem;
-            struct json_object *j_arr = json_object_object_get(j_obj, "i2c_data");
-
-            for (i = 0; i < size; i++) {
-                
-                
-                j_elem = json_object_array_get_idx(j_arr, i);
-                val = json_object_get_int(j_elem);
-                if ((val < 0) && (val > 0xFF)){
-                    i = 0;
-                    break;
-                }
-                tx_payload[i] = (uint8_t)json_object_get_int(j_elem);
-            }
-            
-            tx_payload_sz = (uint8_t)i;
-        }
-    }
-    
-    if (tx_payload_sz == 0) {
-        AFB_NOTICE("i2c_data: invalid or not found");
-        afb_req_fail_f(request, "query-params","params wrong or missing");
-        goto OnErrorExit;
-    }
-    
-    async_req_ptr = malloc(sizeof(afb_req));
-    *async_req_ptr = request;
-    
-    if (UCSI_I2CWrite(  &ucsContextS->ucsiData,   /*UCSI_Data_t *pPriv*/
-                        node_addr,                /*uint16_t targetAddress*/
-                        false,                    /*bool isBurst*/
-                        0u,                       /* block count */
-                        0x2Au,                    /* i2c slave address */
-                        0x03E8u,                  /* timeout 1000 milliseconds */
-                        tx_payload_sz,            /* uint8_t dataLen */
-                        &tx_payload[0],           /* uint8_t *pData */
-                        &ucs2_write_i2c_response, /* callback*/
-                        (void*)async_req_ptr      /* callback argument */
-                  )) {
-        /* asynchronous command is running */
-        afb_req_addref(request);
-    }
-    else {
-        AFB_NOTICE("i2c_data: scheduling command failed");
-        afb_req_fail_f(request, "query-command-queue","command queue overload");
-        free(async_req_ptr);
-        async_req_ptr = NULL;
-        goto OnErrorExit;
-    }
-    
- OnErrorExit:
-    return;
-}
-
-STATIC void ucs2_write_i2c_response(void *result_ptr, void *request_ptr) {
+STATIC void ucs2_writei2c_CB(void *result_ptr, void *request_ptr) {
     
     if (request_ptr){
         afb_req *req = (afb_req *)request_ptr;
@@ -659,4 +558,92 @@ STATIC void ucs2_write_i2c_response(void *result_ptr, void *request_ptr) {
     else {
         AFB_NOTICE("write_i2c: ambiguous response data");
     }
+}
+
+PUBLIC void ucs2_writei2c(struct afb_req request) {
+    
+    struct json_object *j_obj;
+    static uint8_t i2c_data[I2C_MAX_DATA_SZ];
+    uint8_t i2c_data_sz = 0;
+    uint16_t node_addr = 0;
+    struct afb_req *async_req_ptr = NULL;
+    
+    /* check UNICENS is initialised */
+    if (!ucsContextS) {
+        afb_req_fail_f(request, "unicens-init","Should Load Config before using setvol");
+        goto OnErrorExit;
+    }
+
+    j_obj = afb_req_json(request);
+    if (!j_obj) {
+        afb_req_fail_f(request, "query-notjson","query=%s not a valid json entry", afb_req_value(request,""));
+        goto OnErrorExit;
+    };
+    
+    node_addr = (uint16_t)json_object_get_int(json_object_object_get(j_obj, "node"));
+    AFB_NOTICE("node_address: 0x%02X", node_addr);
+    
+    if (node_addr == 0) {
+        afb_req_fail_f(request, "query-params","params wrong or missing");
+        goto OnErrorExit;
+    }
+       
+    if (json_object_get_type(json_object_object_get(j_obj, "data"))==json_type_array) {
+        int size = json_object_array_length(json_object_object_get(j_obj, "data"));
+        if ((size > 0) && (size <= I2C_MAX_DATA_SZ)) {
+            
+            int32_t i;
+            int32_t val;
+            struct json_object *j_elem;
+            struct json_object *j_arr = json_object_object_get(j_obj, "data");
+
+            for (i = 0; i < size; i++) {
+                
+                
+                j_elem = json_object_array_get_idx(j_arr, i);
+                val = json_object_get_int(j_elem);
+                if ((val < 0) && (val > 0xFF)){
+                    i = 0;
+                    break;
+                }
+                i2c_data[i] = (uint8_t)json_object_get_int(j_elem);
+            }
+            
+            i2c_data_sz = (uint8_t)i;
+        }
+    }
+    
+    if (i2c_data_sz == 0) {
+        AFB_NOTICE("data: invalid or not found");
+        afb_req_fail_f(request, "query-params","params wrong or missing");
+        goto OnErrorExit;
+    }
+    
+    async_req_ptr = malloc(sizeof(afb_req));
+    *async_req_ptr = request;
+    
+    if (UCSI_I2CWrite(  &ucsContextS->ucsiData,   /* UCSI_Data_t *pPriv*/
+                        node_addr,                /* uint16_t targetAddress*/
+                        false,                    /* bool isBurst*/
+                        0u,                       /* block count */
+                        0x2Au,                    /* i2c slave address */
+                        0x03E8u,                  /* timeout 1000 milliseconds */
+                        i2c_data_sz,              /* uint8_t dataLen */
+                        &i2c_data[0],             /* uint8_t *pData */
+                        &ucs2_writei2c_CB,        /* callback*/
+                        (void*)async_req_ptr      /* callback argument */
+                  )) {
+        /* asynchronous command is running */
+        afb_req_addref(request);
+    }
+    else {
+        AFB_NOTICE("i2c write: scheduling command failed");
+        afb_req_fail_f(request, "query-command-queue","command queue overload");
+        free(async_req_ptr);
+        async_req_ptr = NULL;
+        goto OnErrorExit;
+    }
+    
+ OnErrorExit:
+    return;
 }
