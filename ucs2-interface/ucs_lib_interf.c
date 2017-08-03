@@ -784,6 +784,8 @@ static void OnUcsMgrReport(Ucs_MgrReport_t code, uint16_t node_address, Ucs_Rm_N
         UCSI_CB_OnUserMessage(my->tag, true, "Node=%X: unknown code", 1, node_address);
         break;
     }
+    
+    UCSI_CB_OnMgrReport(my->tag, code, node_address, node_ptr);
 }
 
 static void OnUcsNsRun(Ucs_Rm_Node_t * node_ptr, Ucs_Ns_ResultCode_t result, void *ucs_user_ptr)

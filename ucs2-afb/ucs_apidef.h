@@ -33,21 +33,21 @@ static const char _afb_description_v2_UNICENS[] =
     "et\":{\"x-permissions\":{\"$ref\":\"#/components/x-permissions/config\"}"
     ",\"parameters\":[{\"in\":\"query\",\"name\":\"filename\",\"required\":tr"
     "ue,\"schema\":{\"type\":\"string\"}}],\"responses\":{\"200\":{\"$ref\":\""
-    "#/components/responses/200\"}}}},\"/volume\":{\"description\":\"Set Mast"
-    "er Volume.\",\"get\":{\"x-permissions\":{\"$ref\":\"#/components/x-permi"
-    "ssions/monitor\"},\"parameters\":[{\"in\":\"query\",\"name\":\"value\",\""
-    "required\":true,\"schema\":{\"type\":\"integer\"}}],\"responses\":{\"200"
-    "\":{\"$ref\":\"#/components/responses/200\"}}}},\"/monitor\":{\"descript"
-    "ion\":\"Subscribe to Unicens Event.\",\"get\":{\"x-permissions\":{\"$ref"
-    "\":\"#/components/x-permissions/monitor\"},\"responses\":{\"200\":{\"$re"
-    "f\":\"#/components/responses/200\"}}}},\"/writei2c\":{\"description\":\""
-    "Writes I2C command to remote node.\",\"get\":{\"x-permissions\":{\"$ref\""
-    ":\"#/components/x-permissions/monitor\"},\"parameters\":[{\"in\":\"query"
-    "\",\"name\":\"node\",\"required\":true,\"schema\":{\"type\":\"integer\","
-    "\"format\":\"int32\"}},{\"in\":\"query\",\"name\":\"data\",\"required\":"
-    "true,\"schema\":{\"type\":\"array\",\"format\":\"int32\"},\"style\":\"si"
-    "mple\"}],\"responses\":{\"200\":{\"$ref\":\"#/components/responses/200\""
-    "}}}}}}"
+    "#/components/responses/200\"}}}},\"/subscribe\":{\"description\":\"Subsc"
+    "ribe to UNICENS Events.\",\"get\":{\"x-permissions\":{\"$ref\":\"#/compo"
+    "nents/x-permissions/monitor\"},\"responses\":{\"200\":{\"$ref\":\"#/comp"
+    "onents/responses/200\"}}}},\"/writei2c\":{\"description\":\"Writes I2C c"
+    "ommand to remote node.\",\"get\":{\"x-permissions\":{\"$ref\":\"#/compon"
+    "ents/x-permissions/monitor\"},\"parameters\":[{\"in\":\"query\",\"name\""
+    ":\"node\",\"required\":true,\"schema\":{\"type\":\"integer\",\"format\":"
+    "\"int32\"}},{\"in\":\"query\",\"name\":\"data\",\"required\":true,\"sche"
+    "ma\":{\"type\":\"array\",\"format\":\"int32\"},\"style\":\"simple\"}],\""
+    "responses\":{\"200\":{\"$ref\":\"#/components/responses/200\"}}}},\"/vol"
+    "ume\":{\"description\":\"Set Master Volume (DEPRECATED).\",\"get\":{\"x-"
+    "permissions\":{\"$ref\":\"#/components/x-permissions/monitor\"},\"parame"
+    "ters\":[{\"in\":\"query\",\"name\":\"value\",\"required\":true,\"schema\""
+    ":{\"type\":\"integer\"}}],\"responses\":{\"200\":{\"$ref\":\"#/component"
+    "s/responses/200\"}}}}}}"
 ;
 
 static const struct afb_auth _afb_auths_v2_UNICENS[] = {
@@ -57,9 +57,9 @@ static const struct afb_auth _afb_auths_v2_UNICENS[] = {
 
  void ucs2_listconfig(struct afb_req req);
  void ucs2_initialise(struct afb_req req);
- void ucs2_volume(struct afb_req req);
- void ucs2_monitor(struct afb_req req);
+ void ucs2_subscribe(struct afb_req req);
  void ucs2_writei2c(struct afb_req req);
+ void ucs2_volume(struct afb_req req);
 
 static const struct afb_verb_v2 _afb_verbs_v2_UNICENS[] = {
     {
@@ -77,15 +77,8 @@ static const struct afb_verb_v2 _afb_verbs_v2_UNICENS[] = {
         .session = AFB_SESSION_NONE_V2
     },
     {
-        .verb = "volume",
-        .callback = ucs2_volume,
-        .auth = &_afb_auths_v2_UNICENS[1],
-        .info = NULL,
-        .session = AFB_SESSION_NONE_V2
-    },
-    {
-        .verb = "monitor",
-        .callback = ucs2_monitor,
+        .verb = "subscribe",
+        .callback = ucs2_subscribe,
         .auth = &_afb_auths_v2_UNICENS[1],
         .info = NULL,
         .session = AFB_SESSION_NONE_V2
@@ -93,6 +86,13 @@ static const struct afb_verb_v2 _afb_verbs_v2_UNICENS[] = {
     {
         .verb = "writei2c",
         .callback = ucs2_writei2c,
+        .auth = &_afb_auths_v2_UNICENS[1],
+        .info = NULL,
+        .session = AFB_SESSION_NONE_V2
+    },
+    {
+        .verb = "volume",
+        .callback = ucs2_volume,
         .auth = &_afb_auths_v2_UNICENS[1],
         .info = NULL,
         .session = AFB_SESSION_NONE_V2

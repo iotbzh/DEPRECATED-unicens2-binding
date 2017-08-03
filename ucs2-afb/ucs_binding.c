@@ -62,7 +62,13 @@ typedef struct {
   UCSI_channelsT *channels;
 } ucsContextT;
 
+typedef struct {
+    struct afb_event node_event;
+    
+} EventData_t;
+
 static ucsContextT *ucsContextS;
+static EventData_t *eventData = NULL;
 
 PUBLIC void UcsXml_CB_OnError(const char format[], uint16_t vargsCnt, ...) {
     /*AFB_DEBUG (afbIface, format, args); */
@@ -198,6 +204,31 @@ void UCSI_CB_OnRouteResult(void *pTag, uint16_t routeId, bool isActive)
 
 void UCSI_CB_OnGpioStateChange(void *pTag, uint16_t nodeAddress, uint8_t gpioPinId, bool isHighState)
 {
+}
+
+PUBLIC void UCSI_CB_OnMgrReport(void *pTag, Ucs_MgrReport_t code, uint16_t nodeAddress, Ucs_Rm_Node_t *pNode){
+
+    bool available;
+    
+    if (code == UCS_MGR_REP_AVAILABLE) {
+        available = true;
+    }
+    else if (code == UCS_MGR_REP_NOT_AVAILABLE) {
+        available = false;
+    }
+    else {
+        /*untracked event - just exit*/
+        return;
+    }
+    
+    if (eventData) {
+        
+        json_object *j_event_info = json_object_new_object();
+        json_object_object_add(j_event_info, "node", json_object_new_int(nodeAddress));
+        json_object_object_add(j_event_info, "available", json_object_new_boolean(available));
+        
+        afb_event_push(eventData->node_event, j_event_info);
+    }     
 }
 
 bool Cdev_Init(CdevData_t *d, const char *fileName, bool read, bool write)
@@ -531,12 +562,34 @@ PUBLIC void ucs2_listconfig (struct afb_req request) {
     return;
 }
 
-PUBLIC void ucs2_monitor (struct afb_req request) {
+PUBLIC void ucs2_subscribe (struct afb_req request) {
     
-   afb_req_success(request,NULL,"UNICENS-to_be_done"); 
+    if (!eventData) {
+        
+        eventData = malloc(sizeof(EventData_t));
+        if (eventData) {
+            eventData->node_event = afb_daemon_make_event ("node-availibility");
+        }
+        
+        if (!eventData || !afb_event_is_valid(eventData->node_event)) {
+            afb_req_fail_f (request, "create-event", "Cannot create or register event");
+            goto OnExitError;
+        }
+    }
+    
+    if (afb_req_subscribe(request, eventData->node_event) != 0) {
+        
+        afb_req_fail_f (request, "subscribe-event", "Cannot subscribe to event");
+        goto OnExitError;
+    }
+    
+    afb_req_success(request,NULL,"event subscription successful"); 
+    
+OnExitError:
+    return;
 }
 
-STATIC void ucs2_writei2c_CB(void *result_ptr, void *request_ptr) {
+STATIC void ucs2_writei2c_CB (void *result_ptr, void *request_ptr) {
     
     if (request_ptr){
         afb_req *req = (afb_req *)request_ptr;
@@ -560,7 +613,7 @@ STATIC void ucs2_writei2c_CB(void *result_ptr, void *request_ptr) {
     }
 }
 
-PUBLIC void ucs2_writei2c(struct afb_req request) {
+PUBLIC void ucs2_writei2c (struct afb_req request) {
     
     struct json_object *j_obj;
     static uint8_t i2c_data[I2C_MAX_DATA_SZ];
