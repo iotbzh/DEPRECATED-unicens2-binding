@@ -292,6 +292,16 @@ extern void UCSI_CB_OnRouteResult(void *pTag, uint16_t routeId, bool isActive);
  */
 extern void UCSI_CB_OnGpioStateChange(void *pTag, uint16_t nodeAddress, uint8_t gpioPinId, bool isHighState);
 
+/**
+ * \brief Callback when nodes are discovered or disappear
+ * \note This function must be implemented by the integrator
+ * \param pTag - Pointer given by the integrator by UCSI_Init
+ * \param code - Report code
+ * \param nodeAddress - Node Address of the INIC sending the update.
+ * \param pNode - Reference to the node structure or NULL.
+ */
+extern void UCSI_CB_OnMgrReport(void *pTag, Ucs_MgrReport_t code, uint16_t nodeAddress, Ucs_Rm_Node_t *pNode);
+
 #ifdef __cplusplus
 }
 #endif
