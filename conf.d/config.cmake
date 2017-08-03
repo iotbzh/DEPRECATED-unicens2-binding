@@ -74,7 +74,7 @@ add_compile_options()
 # ---------------------------------------------------------
 add_compile_options(-DCONTROL_CDEV_TX="/dev/inic-usb-ctx")
 add_compile_options(-DCONTROL_CDEV_RX="/dev/inic-usb-crx")
-add_compile_options(-DUCS2_CFG_PATH="/etc/default/ucs:./data")
+add_compile_options(-DUCS2_CFG_PATH="/etc/default/ucs:../data:./data")
 
 
 # LANG Specific compile flags set for all build types
@@ -83,7 +83,7 @@ set(CMAKE_CXX_FLAGS "")
 
 # Print a helper message when every thing is finished
 # ----------------------------------------------------
-set(CLOSING_MESSAGE "Test with: afb-daemon --ldpaths=. --port=1234 --workdir=.. --roothttp=./htdocs --tracereq=common --token='' --verbose")
+set(CLOSING_MESSAGE "Test with: afb-daemon --ldpaths=. --port=1234 --workdir=. --roothttp=../htdocs --tracereq=common --token='' --verbose")
 #set(PACKAGE_MESSAGE "Install widget file using in the target : afm-util install ${PROJECT_NAME}.wgt")
 
 # (BUG!!!) as PKG_CONFIG_PATH does not work [should be an env variable]
