@@ -154,9 +154,6 @@
           <incDir>
             <pElem>ucs2-lib/unicens/src</pElem>
           </incDir>
-          <preprocessorList>
-            <Elem>UCS2_CFG_PATH="/etc/default/ucs:./data"</Elem>
-          </preprocessorList>
         </cTool>
       </folder>
       <item path="ucs2-afb/ucs_apihat.c" ex="false" tool="0" flavor2="3">
