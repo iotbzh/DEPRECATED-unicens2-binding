@@ -521,7 +521,7 @@ PUBLIC void ucs2_listconfig (struct afb_req request) {
 
     queryJ = afb_req_json(request);
     if (queryJ && json_object_object_get_ex (queryJ, "cfgpath" , &tmpJ)) {
-        strdup (json_object_get_string(tmpJ));
+        dirList = strdup (json_object_get_string(tmpJ));
     } else {    
         dirList = strdup (UCS2_CFG_PATH); 
         AFB_NOTICE ("fgpath:missing uses UCS2_CFG_PATH=%s", UCS2_CFG_PATH);
