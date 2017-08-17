@@ -24,8 +24,6 @@
 #include "ucs_interface.h"
 #include "libmostvolume.h"
 
-
-
 static UCSI_channelsT ucsiChannels[] = {
     {.name= "FRONT_LEFT" , .numid= (int)LIB_MOST_VOLUME_CH_FRONT_LEFT},
     {.name= "FRONT_RIGHT", .numid= (int)LIB_MOST_VOLUME_CH_FRONT_RIGHT},
