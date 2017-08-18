@@ -26,7 +26,6 @@
           <in>UcsXml_Private.c</in>
         </df>
         <in>ucs_lib_interf.c</in>
-        <in>ucs_vol_interf.c</in>
       </df>
       <df name="ucs2-lib">
         <df name="unicens">
@@ -87,15 +86,6 @@
           </df>
         </df>
       </df>
-      <df name="ucs2-vol">
-        <df name="src">
-          <in>callbacks.cpp</in>
-          <in>device_container.cpp</in>
-          <in>device_value.cpp</in>
-          <in>libmostvolume.cpp</in>
-          <in>setup.cpp</in>
-        </df>
-      </df>
     </df>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"
@@ -120,9 +110,8 @@
         <rebuildPropChanged>false</rebuildPropChanged>
       </toolsSet>
       <flagsDictionary>
-        <element flagsID="0" commonFlags="-mtune=generic -march=x86-64 -fPIC"/>
-        <element flagsID="1" commonFlags="-mtune=generic -march=x86-64 -g -g -fPIC"/>
-        <element flagsID="2"
+        <element flagsID="0" commonFlags="-mtune=generic -march=x86-64 -g -g -fPIC"/>
+        <element flagsID="1"
                  commonFlags="-mtune=generic -march=x86-64 -g -g -ggdb -fPIC"/>
       </flagsDictionary>
       <codeAssistance>
@@ -157,7 +146,7 @@
         </cTool>
       </folder>
       <item path="ucs2-afb/ucs_apihat.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="1">
+        <cTool flags="0">
           <incDir>
             <pElem>ucs2-afb</pElem>
             <pElem>/opt/AGL/include/afb</pElem>
@@ -166,7 +155,7 @@
         </cTool>
       </item>
       <item path="ucs2-afb/ucs_binding.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="1">
+        <cTool flags="0">
           <incDir>
             <pElem>/opt/AGL/include/afb</pElem>
             <pElem>ucs2-afb</pElem>
@@ -180,7 +169,7 @@
         </cTool>
       </item>
       <item path="ucs2-interface/ucs-xml/UcsXml.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="2">
+        <cTool flags="1">
           <incDir>
             <pElem>build/ucs2-interface</pElem>
           </incDir>
@@ -190,11 +179,11 @@
             ex="false"
             tool="0"
             flavor2="3">
-        <cTool flags="2">
+        <cTool flags="1">
         </cTool>
       </item>
       <item path="ucs2-interface/ucs_lib_interf.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="2">
+        <cTool flags="1">
           <incDir>
             <pElem>ucs2-interface</pElem>
             <pElem>ucs2-lib/unicens/inc</pElem>
@@ -204,32 +193,22 @@
           </incDir>
         </cTool>
       </item>
-      <item path="ucs2-interface/ucs_vol_interf.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="2">
-          <incDir>
-            <pElem>ucs2-interface</pElem>
-            <pElem>ucs2-lib/unicens/inc</pElem>
-            <pElem>ucs2-vol/inc</pElem>
-            <pElem>build/ucs2-interface</pElem>
-          </incDir>
-        </cTool>
-      </item>
       <item path="ucs2-lib/unicens/src/ucs_alm.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="2">
+        <cTool flags="1">
           <incDir>
             <pElem>ucs2-lib/unicens/inc</pElem>
           </incDir>
         </cTool>
       </item>
       <item path="ucs2-lib/unicens/src/ucs_amd.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="2">
+        <cTool flags="1">
           <incDir>
             <pElem>ucs2-lib/unicens/inc</pElem>
           </incDir>
         </cTool>
       </item>
       <item path="ucs2-lib/unicens/src/ucs_ams.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="2">
+        <cTool flags="1">
           <incDir>
             <pElem>ucs2-lib/unicens/inc</pElem>
           </incDir>
@@ -239,7 +218,7 @@
             ex="false"
             tool="0"
             flavor2="3">
-        <cTool flags="2">
+        <cTool flags="1">
           <incDir>
             <pElem>/usr/lib64/gcc/x86_64-suse-linux/5/include</pElem>
             <pElem>ucs2-lib/unicens/inc</pElem>
@@ -247,126 +226,126 @@
         </cTool>
       </item>
       <item path="ucs2-lib/unicens/src/ucs_amspool.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="2">
+        <cTool flags="1">
           <incDir>
             <pElem>ucs2-lib/unicens/inc</pElem>
           </incDir>
         </cTool>
       </item>
       <item path="ucs2-lib/unicens/src/ucs_amtp.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="2">
+        <cTool flags="1">
           <incDir>
             <pElem>ucs2-lib/unicens/inc</pElem>
           </incDir>
         </cTool>
       </item>
       <item path="ucs2-lib/unicens/src/ucs_attach.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="2">
+        <cTool flags="1">
           <incDir>
             <pElem>ucs2-lib/unicens/inc</pElem>
           </incDir>
         </cTool>
       </item>
       <item path="ucs2-lib/unicens/src/ucs_base.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="2">
+        <cTool flags="1">
           <incDir>
             <pElem>ucs2-lib/unicens/inc</pElem>
           </incDir>
         </cTool>
       </item>
       <item path="ucs2-lib/unicens/src/ucs_bc_diag.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="2">
+        <cTool flags="1">
           <incDir>
             <pElem>ucs2-lib/unicens/inc</pElem>
           </incDir>
         </cTool>
       </item>
       <item path="ucs2-lib/unicens/src/ucs_class.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="2">
+        <cTool flags="1">
           <incDir>
             <pElem>ucs2-lib/unicens/inc</pElem>
           </incDir>
         </cTool>
       </item>
       <item path="ucs2-lib/unicens/src/ucs_cmd.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="2">
+        <cTool flags="1">
           <incDir>
             <pElem>ucs2-lib/unicens/inc</pElem>
           </incDir>
         </cTool>
       </item>
       <item path="ucs2-lib/unicens/src/ucs_dec.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="2">
+        <cTool flags="1">
           <incDir>
             <pElem>ucs2-lib/unicens/inc</pElem>
           </incDir>
         </cTool>
       </item>
       <item path="ucs2-lib/unicens/src/ucs_dl.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="2">
+        <cTool flags="1">
           <incDir>
             <pElem>ucs2-lib/unicens/inc</pElem>
           </incDir>
         </cTool>
       </item>
       <item path="ucs2-lib/unicens/src/ucs_eh.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="2">
+        <cTool flags="1">
           <incDir>
             <pElem>ucs2-lib/unicens/inc</pElem>
           </incDir>
         </cTool>
       </item>
       <item path="ucs2-lib/unicens/src/ucs_encoder.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="2">
+        <cTool flags="1">
           <incDir>
             <pElem>ucs2-lib/unicens/inc</pElem>
           </incDir>
         </cTool>
       </item>
       <item path="ucs2-lib/unicens/src/ucs_epm.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="2">
+        <cTool flags="1">
           <incDir>
             <pElem>ucs2-lib/unicens/inc</pElem>
           </incDir>
         </cTool>
       </item>
       <item path="ucs2-lib/unicens/src/ucs_exc.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="2">
+        <cTool flags="1">
           <incDir>
             <pElem>ucs2-lib/unicens/inc</pElem>
           </incDir>
         </cTool>
       </item>
       <item path="ucs2-lib/unicens/src/ucs_factory.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="2">
+        <cTool flags="1">
           <incDir>
             <pElem>ucs2-lib/unicens/inc</pElem>
           </incDir>
         </cTool>
       </item>
       <item path="ucs2-lib/unicens/src/ucs_fsm.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="2">
+        <cTool flags="1">
           <incDir>
             <pElem>ucs2-lib/unicens/inc</pElem>
           </incDir>
         </cTool>
       </item>
       <item path="ucs2-lib/unicens/src/ucs_gpio.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="2">
+        <cTool flags="1">
           <incDir>
             <pElem>ucs2-lib/unicens/inc</pElem>
           </incDir>
         </cTool>
       </item>
       <item path="ucs2-lib/unicens/src/ucs_i2c.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="2">
+        <cTool flags="1">
           <incDir>
             <pElem>ucs2-lib/unicens/inc</pElem>
           </incDir>
         </cTool>
       </item>
       <item path="ucs2-lib/unicens/src/ucs_inic.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="2">
+        <cTool flags="1">
           <incDir>
             <pElem>ucs2-lib/unicens/inc</pElem>
           </incDir>
@@ -376,53 +355,53 @@
             ex="false"
             tool="0"
             flavor2="3">
-        <cTool flags="2">
+        <cTool flags="1">
           <incDir>
             <pElem>ucs2-lib/unicens/inc</pElem>
           </incDir>
         </cTool>
       </item>
       <item path="ucs2-lib/unicens/src/ucs_jobs.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="2">
+        <cTool flags="1">
           <incDir>
             <pElem>ucs2-lib/unicens/inc</pElem>
           </incDir>
         </cTool>
       </item>
       <item path="ucs2-lib/unicens/src/ucs_lldpool.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="2">
+        <cTool flags="1">
           <incDir>
             <pElem>ucs2-lib/unicens/inc</pElem>
           </incDir>
         </cTool>
       </item>
       <item path="ucs2-lib/unicens/src/ucs_message.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="2">
+        <cTool flags="1">
           <incDir>
             <pElem>ucs2-lib/unicens/inc</pElem>
           </incDir>
         </cTool>
       </item>
       <item path="ucs2-lib/unicens/src/ucs_mgr.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="2">
+        <cTool flags="1">
           <incDir>
             <pElem>ucs2-lib/unicens/inc</pElem>
           </incDir>
         </cTool>
       </item>
       <item path="ucs2-lib/unicens/src/ucs_misc.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="2">
+        <cTool flags="1">
         </cTool>
       </item>
       <item path="ucs2-lib/unicens/src/ucs_net.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="2">
+        <cTool flags="1">
           <incDir>
             <pElem>ucs2-lib/unicens/inc</pElem>
           </incDir>
         </cTool>
       </item>
       <item path="ucs2-lib/unicens/src/ucs_nodedis.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="2">
+        <cTool flags="1">
           <incDir>
             <pElem>ucs2-lib/unicens/inc</pElem>
           </incDir>
@@ -432,21 +411,21 @@
             ex="false"
             tool="0"
             flavor2="3">
-        <cTool flags="2">
+        <cTool flags="1">
           <incDir>
             <pElem>ucs2-lib/unicens/inc</pElem>
           </incDir>
         </cTool>
       </item>
       <item path="ucs2-lib/unicens/src/ucs_nsm.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="2">
+        <cTool flags="1">
           <incDir>
             <pElem>ucs2-lib/unicens/inc</pElem>
           </incDir>
         </cTool>
       </item>
       <item path="ucs2-lib/unicens/src/ucs_obs.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="2">
+        <cTool flags="1">
           <incDir>
             <pElem>ucs2-lib/unicens/inc</pElem>
           </incDir>
@@ -456,14 +435,14 @@
             ex="false"
             tool="0"
             flavor2="3">
-        <cTool flags="2">
+        <cTool flags="1">
           <incDir>
             <pElem>ucs2-lib/unicens/inc</pElem>
           </incDir>
         </cTool>
       </item>
       <item path="ucs2-lib/unicens/src/ucs_pmcmd.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="2">
+        <cTool flags="1">
           <incDir>
             <pElem>/usr/lib64/gcc/x86_64-suse-linux/5/include</pElem>
             <pElem>ucs2-lib/unicens/inc</pElem>
@@ -471,56 +450,56 @@
         </cTool>
       </item>
       <item path="ucs2-lib/unicens/src/ucs_pmevent.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="2">
+        <cTool flags="1">
           <incDir>
             <pElem>ucs2-lib/unicens/inc</pElem>
           </incDir>
         </cTool>
       </item>
       <item path="ucs2-lib/unicens/src/ucs_pmfifo.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="2">
+        <cTool flags="1">
           <incDir>
             <pElem>ucs2-lib/unicens/inc</pElem>
           </incDir>
         </cTool>
       </item>
       <item path="ucs2-lib/unicens/src/ucs_pmfifos.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="2">
+        <cTool flags="1">
           <incDir>
             <pElem>ucs2-lib/unicens/inc</pElem>
           </incDir>
         </cTool>
       </item>
       <item path="ucs2-lib/unicens/src/ucs_pmp.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="2">
+        <cTool flags="1">
           <incDir>
             <pElem>ucs2-lib/unicens/inc</pElem>
           </incDir>
         </cTool>
       </item>
       <item path="ucs2-lib/unicens/src/ucs_pool.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="2">
+        <cTool flags="1">
           <incDir>
             <pElem>ucs2-lib/unicens/inc</pElem>
           </incDir>
         </cTool>
       </item>
       <item path="ucs2-lib/unicens/src/ucs_prog.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="2">
+        <cTool flags="1">
           <incDir>
             <pElem>ucs2-lib/unicens/inc</pElem>
           </incDir>
         </cTool>
       </item>
       <item path="ucs2-lib/unicens/src/ucs_rsm.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="2">
+        <cTool flags="1">
           <incDir>
             <pElem>ucs2-lib/unicens/inc</pElem>
           </incDir>
         </cTool>
       </item>
       <item path="ucs2-lib/unicens/src/ucs_rtm.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="2">
+        <cTool flags="1">
           <incDir>
             <pElem>ucs2-lib/unicens/inc</pElem>
           </incDir>
@@ -530,7 +509,7 @@
             ex="false"
             tool="0"
             flavor2="3">
-        <cTool flags="2">
+        <cTool flags="1">
           <incDir>
             <pElem>ucs2-lib/unicens/inc</pElem>
           </incDir>
@@ -540,14 +519,14 @@
             ex="false"
             tool="0"
             flavor2="3">
-        <cTool flags="2">
+        <cTool flags="1">
           <incDir>
             <pElem>ucs2-lib/unicens/inc</pElem>
           </incDir>
         </cTool>
       </item>
       <item path="ucs2-lib/unicens/src/ucs_smm.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="2">
+        <cTool flags="1">
           <incDir>
             <pElem>ucs2-lib/unicens/inc</pElem>
           </incDir>
@@ -557,7 +536,7 @@
             ex="false"
             tool="0"
             flavor2="3">
-        <cTool flags="2">
+        <cTool flags="1">
           <incDir>
             <pElem>ucs2-lib/unicens/inc</pElem>
           </incDir>
@@ -567,14 +546,14 @@
             ex="false"
             tool="0"
             flavor2="3">
-        <cTool flags="2">
+        <cTool flags="1">
           <incDir>
             <pElem>ucs2-lib/unicens/inc</pElem>
           </incDir>
         </cTool>
       </item>
       <item path="ucs2-lib/unicens/src/ucs_timer.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="2">
+        <cTool flags="1">
           <incDir>
             <pElem>ucs2-lib/unicens/inc</pElem>
           </incDir>
@@ -584,77 +563,32 @@
             ex="false"
             tool="0"
             flavor2="3">
-        <cTool flags="2">
+        <cTool flags="1">
           <incDir>
             <pElem>ucs2-lib/unicens/inc</pElem>
           </incDir>
         </cTool>
       </item>
       <item path="ucs2-lib/unicens/src/ucs_xrm.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="2">
+        <cTool flags="1">
           <incDir>
             <pElem>ucs2-lib/unicens/inc</pElem>
           </incDir>
         </cTool>
       </item>
       <item path="ucs2-lib/unicens/src/ucs_xrm_res.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="2">
+        <cTool flags="1">
           <incDir>
             <pElem>ucs2-lib/unicens/inc</pElem>
           </incDir>
         </cTool>
       </item>
       <item path="ucs2-lib/unicens/src/ucs_xrmpool.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="2">
+        <cTool flags="1">
           <incDir>
             <pElem>ucs2-lib/unicens/inc</pElem>
           </incDir>
         </cTool>
-      </item>
-      <item path="ucs2-vol/src/callbacks.cpp" ex="false" tool="1" flavor2="4">
-        <ccTool flags="0">
-          <incDir>
-            <pElem>ucs2-vol/src</pElem>
-            <pElem>ucs2-lib/unicens/inc</pElem>
-            <pElem>ucs2-vol/inc</pElem>
-          </incDir>
-        </ccTool>
-      </item>
-      <item path="ucs2-vol/src/device_container.cpp" ex="false" tool="1" flavor2="4">
-        <ccTool flags="0">
-          <incDir>
-            <pElem>ucs2-vol/inc</pElem>
-            <pElem>ucs2-vol/src</pElem>
-            <pElem>ucs2-lib/unicens/inc</pElem>
-          </incDir>
-        </ccTool>
-      </item>
-      <item path="ucs2-vol/src/device_value.cpp" ex="false" tool="1" flavor2="4">
-        <ccTool flags="0">
-          <incDir>
-            <pElem>ucs2-vol/src</pElem>
-            <pElem>ucs2-lib/unicens/inc</pElem>
-            <pElem>ucs2-vol/inc</pElem>
-          </incDir>
-        </ccTool>
-      </item>
-      <item path="ucs2-vol/src/libmostvolume.cpp" ex="false" tool="1" flavor2="4">
-        <ccTool flags="0">
-          <incDir>
-            <pElem>ucs2-vol/src</pElem>
-            <pElem>ucs2-lib/unicens/inc</pElem>
-            <pElem>ucs2-vol/inc</pElem>
-          </incDir>
-        </ccTool>
-      </item>
-      <item path="ucs2-vol/src/setup.cpp" ex="false" tool="1" flavor2="4">
-        <ccTool flags="0">
-          <incDir>
-            <pElem>ucs2-vol/inc</pElem>
-            <pElem>ucs2-vol/src</pElem>
-            <pElem>ucs2-lib/unicens/inc</pElem>
-          </incDir>
-        </ccTool>
       </item>
     </conf>
     <conf name="Fulup-Laptop" type="0">
@@ -664,8 +598,7 @@
         <rebuildPropChanged>false</rebuildPropChanged>
       </toolsSet>
       <flagsDictionary>
-        <element flagsID="0" commonFlags="-mtune=generic -march=x86-64 -fPIC"/>
-        <element flagsID="1" commonFlags="-mtune=generic -march=x86-64 -g -g -fPIC"/>
+        <element flagsID="0" commonFlags="-mtune=generic -march=x86-64 -g -g -fPIC"/>
       </flagsDictionary>
       <codeAssistance>
         <includeAdditional>true</includeAdditional>
@@ -724,29 +657,8 @@
           </preprocessorList>
         </cTool>
       </folder>
-      <folder path="0/ucs2-vol">
-        <ccTool>
-          <incDir>
-            <pElem>../../../opt/include</pElem>
-            <pElem>/usr/include/json-c</pElem>
-            <pElem>ucs2-vol/inc</pElem>
-            <pElem>ucs2-vol/cfg</pElem>
-            <pElem>ucs2-vol/src/ucs-xml</pElem>
-            <pElem>ucs2-lib/inc</pElem>
-            <pElem>ucs2-lib/cfg</pElem>
-            <pElem>ucs2-lib/src/ucs-xml</pElem>
-            <pElem>build/ucs2-vol/src</pElem>
-          </incDir>
-          <preprocessorList>
-            <Elem>CONTROL_CDEV_RX="/dev/inic-usb-crx"</Elem>
-            <Elem>CONTROL_CDEV_TX="/dev/inic-usb-ctx"</Elem>
-            <Elem>_REENTRANT</Elem>
-            <Elem>_THREAD_SAFE</Elem>
-          </preprocessorList>
-        </ccTool>
-      </folder>
       <item path="ucs2-afb/ucs_apihat.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="1">
+        <cTool flags="0">
           <incDir>
             <pElem>ucs2-afb</pElem>
             <pElem>../../../opt/include/afb</pElem>
@@ -755,7 +667,7 @@
         </cTool>
       </item>
       <item path="ucs2-afb/ucs_binding.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="1">
+        <cTool flags="0">
           <incDir>
             <pElem>../../../opt/include/afb</pElem>
             <pElem>ucs2-afb</pElem>
@@ -768,11 +680,11 @@
         </cTool>
       </item>
       <item path="ucs2-interface/ucs-xml/UcsXml.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="1">
+        <cTool flags="0">
         </cTool>
       </item>
       <item path="ucs2-interface/ucs_lib_interf.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="1">
+        <cTool flags="0">
           <incDir>
             <pElem>ucs2-interface</pElem>
             <pElem>ucs2-lib/inc</pElem>
@@ -780,61 +692,6 @@
             <pElem>build/ucs2-interface</pElem>
           </incDir>
         </cTool>
-      </item>
-      <item path="ucs2-interface/ucs_vol_interf.c" ex="false" tool="0" flavor2="3">
-        <cTool flags="1">
-          <incDir>
-            <pElem>ucs2-interface</pElem>
-            <pElem>ucs2-lib/inc</pElem>
-            <pElem>ucs2-vol/inc</pElem>
-            <pElem>build/ucs2-interface</pElem>
-          </incDir>
-        </cTool>
-      </item>
-      <item path="ucs2-vol/src/callbacks.cpp" ex="false" tool="1" flavor2="4">
-        <ccTool flags="0">
-          <incDir>
-            <pElem>ucs2-vol/src</pElem>
-            <pElem>ucs2-lib/inc</pElem>
-            <pElem>ucs2-vol/inc</pElem>
-          </incDir>
-        </ccTool>
-      </item>
-      <item path="ucs2-vol/src/device_container.cpp" ex="false" tool="1" flavor2="4">
-        <ccTool flags="0">
-          <incDir>
-            <pElem>ucs2-vol/inc</pElem>
-            <pElem>ucs2-vol/src</pElem>
-            <pElem>ucs2-lib/inc</pElem>
-          </incDir>
-        </ccTool>
-      </item>
-      <item path="ucs2-vol/src/device_value.cpp" ex="false" tool="1" flavor2="4">
-        <ccTool flags="0">
-          <incDir>
-            <pElem>ucs2-vol/src</pElem>
-            <pElem>ucs2-lib/inc</pElem>
-            <pElem>ucs2-vol/inc</pElem>
-          </incDir>
-        </ccTool>
-      </item>
-      <item path="ucs2-vol/src/libmostvolume.cpp" ex="false" tool="1" flavor2="4">
-        <ccTool flags="0">
-          <incDir>
-            <pElem>ucs2-vol/src</pElem>
-            <pElem>ucs2-lib/inc</pElem>
-            <pElem>ucs2-vol/inc</pElem>
-          </incDir>
-        </ccTool>
-      </item>
-      <item path="ucs2-vol/src/setup.cpp" ex="false" tool="1" flavor2="4">
-        <ccTool flags="0">
-          <incDir>
-            <pElem>ucs2-vol/inc</pElem>
-            <pElem>ucs2-vol/src</pElem>
-            <pElem>ucs2-lib/inc</pElem>
-          </incDir>
-        </ccTool>
       </item>
     </conf>
   </confs>
