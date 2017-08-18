@@ -42,12 +42,7 @@ static const char _afb_description_v2_UNICENS[] =
     ":\"node\",\"required\":true,\"schema\":{\"type\":\"integer\",\"format\":"
     "\"int32\"}},{\"in\":\"query\",\"name\":\"data\",\"required\":true,\"sche"
     "ma\":{\"type\":\"array\",\"format\":\"int32\"},\"style\":\"simple\"}],\""
-    "responses\":{\"200\":{\"$ref\":\"#/components/responses/200\"}}}},\"/vol"
-    "ume\":{\"description\":\"Set Master Volume (DEPRECATED).\",\"get\":{\"x-"
-    "permissions\":{\"$ref\":\"#/components/x-permissions/monitor\"},\"parame"
-    "ters\":[{\"in\":\"query\",\"name\":\"value\",\"required\":true,\"schema\""
-    ":{\"type\":\"integer\"}}],\"responses\":{\"200\":{\"$ref\":\"#/component"
-    "s/responses/200\"}}}}}}"
+    "responses\":{\"200\":{\"$ref\":\"#/components/responses/200\"}}}}}}"
 ;
 
 static const struct afb_auth _afb_auths_v2_UNICENS[] = {
@@ -59,7 +54,6 @@ static const struct afb_auth _afb_auths_v2_UNICENS[] = {
  void ucs2_initialise(struct afb_req req);
  void ucs2_subscribe(struct afb_req req);
  void ucs2_writei2c(struct afb_req req);
- void ucs2_volume(struct afb_req req);
 
 static const struct afb_verb_v2 _afb_verbs_v2_UNICENS[] = {
     {
@@ -86,13 +80,6 @@ static const struct afb_verb_v2 _afb_verbs_v2_UNICENS[] = {
     {
         .verb = "writei2c",
         .callback = ucs2_writei2c,
-        .auth = &_afb_auths_v2_UNICENS[1],
-        .info = NULL,
-        .session = AFB_SESSION_NONE_V2
-    },
-    {
-        .verb = "volume",
-        .callback = ucs2_volume,
         .auth = &_afb_auths_v2_UNICENS[1],
         .info = NULL,
         .session = AFB_SESSION_NONE_V2

@@ -59,7 +59,6 @@ typedef struct {
   CdevData_t rx;
   CdevData_t tx;
   UCSI_Data_t ucsiData;
-  UCSI_channelsT *channels;
 } ucsContextT;
 
 typedef struct {
@@ -326,141 +325,6 @@ STATIC UcsXmlVal_t* ParseFile(struct afb_req request) {
     return NULL;
 }
 
-STATIC int volOnSvcCB (sd_event_source* source,uint64_t timer, void* pTag) {
-    ucsContextT *ucsContext = (ucsContextT*) pTag;
-
-    sd_event_source_unref(source);
-    UCSI_Vol_Service(&ucsContext->ucsiData);
-
-    return 0;
-}
-
-/* This callback is fire each time an volume event wait in the queue */
-void volumeCB (uint16_t timeout) {
-    uint64_t usec;
-    sd_event_now(afb_daemon_get_event_loop(), CLOCK_BOOTTIME, &usec);
-    sd_event_add_time(afb_daemon_get_event_loop(), NULL, CLOCK_MONOTONIC, usec + (timeout*1000), 250, volOnSvcCB, ucsContextS);
-}
-
-STATIC int volSndCmd (struct afb_req request, struct json_object *commandJ, ucsContextT *ucsContext) {
-    int numid, vol, err;
-    struct json_object *nameJ, *channelJ, *volJ;
-
-    enum json_type jtype= json_object_get_type(commandJ);
-    switch (jtype) {
-        case json_type_array:
-            if (!sscanf (json_object_get_string (json_object_array_get_idx(commandJ, 0)), "%d", &numid)) {
-                afb_req_fail_f (request, "channel-invalid","command=%s channel is not an integer", json_object_get_string (channelJ));
-                goto OnErrorExit;
-            }
-            if (!sscanf (json_object_get_string (json_object_array_get_idx(commandJ, 1)), "%d", &vol)) {
-                afb_req_fail_f (request, "vol-invalid","command=%s vol is not an integer", json_object_get_string (channelJ));
-                goto OnErrorExit;
-            }
-            break;
-
-        case json_type_object:
-            if (json_object_object_get_ex (commandJ, "numid", &channelJ)) {
-                if (!sscanf (json_object_get_string (channelJ), "%d", &numid)) {
-                    afb_req_fail_f (request, "channel-invalid","command=%s numid is not an integer", json_object_get_string (channelJ));
-                    goto OnErrorExit;
-                }
-            } else {
-                if (json_object_object_get_ex (commandJ, "channel", &nameJ)) {
-                    int idx;
-                    const char *name = json_object_get_string(nameJ);
-
-                    for (idx =0; ucsContext->channels[idx].name != NULL; idx++) {
-                        if (!strcasecmp(ucsContext->channels[idx].name, name)) {
-                            numid = ucsContext->channels[idx].numid;
-                            break;
-                        }
-                    }
-                    if (ucsContext->channels[idx].name == NULL) {
-                        afb_req_fail_f (request, "channel-invalid","command=%s channel name does not exist", name);
-                        goto OnErrorExit;
-                    }
-                } else {
-                    afb_req_fail_f (request, "channel-invalid","command=%s no valid channel name or channel", json_object_get_string(commandJ));
-                    goto OnErrorExit;
-                };
-            }
-
-            if (!json_object_object_get_ex (commandJ, "volume", &volJ)) {
-                afb_req_fail_f (request, "vol-missing","command=%s vol not present", json_object_get_string (commandJ));
-                goto OnErrorExit;
-            }
-
-            if (!sscanf (json_object_get_string (volJ), "%d", &vol)) {
-                afb_req_fail_f (request, "vol-invalid","command=%s vol:%s is not an integer", json_object_get_string (commandJ), json_object_get_string (volJ));
-                goto OnErrorExit;
-            }
-
-            break;
-
-        default:
-            afb_req_fail_f (request, "setvol-invalid","command=%s not valid JSON Volume Command", json_object_get_string(commandJ));
-            goto OnErrorExit;
-    }
-
-
-    /* Fulup what's append when channel or vol are invalid ??? */
-    err = UCSI_Vol_Set  (&ucsContext->ucsiData, numid, (uint8_t) vol);
-    if (err) {
-        /* Fulup this might only be a warning (not sure about it) */
-        afb_req_fail_f (request, "vol-refused","command=%s vol was refused by UNICENS", json_object_get_string (volJ));
-        goto OnErrorExit;
-    }
-
-    return 0;
-
-  OnErrorExit:
-    return 1;
-}
-
-PUBLIC void ucs2_volume (struct afb_req request) {
-    struct json_object *queryJ;
-    int err;
-
-    /* check UNICENS is initialised */
-    if (!ucsContextS) {
-        afb_req_fail_f (request, "UNICENS-init","Should Load Config before using setvol");
-        goto OnErrorExit;
-    }
-
-    queryJ = afb_req_json(request);
-    if (!queryJ) {
-        afb_req_fail_f (request, "query-notjson","query=%s not a valid json entry", afb_req_value(request,""));
-        goto OnErrorExit;
-    };
-
-    enum json_type jtype= json_object_get_type(queryJ);
-    switch (jtype) {
-        case json_type_array:
-            for (int idx=0; idx < json_object_array_length (queryJ); idx ++) {
-               err= volSndCmd (request, json_object_array_get_idx (queryJ, idx), ucsContextS);
-               if (err) goto OnErrorExit;
-            }
-            break;
-
-        case json_type_object:
-            err = volSndCmd (request, queryJ, ucsContextS);
-            if (err) goto OnErrorExit;
-            break;
-
-        default:
-            afb_req_fail_f (request, "query-notarray","query=%s not valid JSON Volume Command Array", afb_req_value(request,""));
-            goto OnErrorExit;
-    }
-
-
-    afb_req_success(request,NULL,NULL);
-
- OnErrorExit:
-    return;
-}
-
-
 PUBLIC void ucs2_initialise (struct afb_req request) {
     static UcsXmlVal_t *ucsConfig;
     static ucsContextT ucsContext;
@@ -490,12 +354,6 @@ PUBLIC void ucs2_initialise (struct afb_req request) {
             goto OnErrorExit;
         }
 
-        /* init UNICENS Volume Library */
-        ucsContext.channels = UCSI_Vol_Init (&ucsContext.ucsiData, volumeCB);
-        if (!ucsContext.channels) {
-            afb_req_fail_f (request, "register-volume", "Could not enqueue new Unicens config");
-            goto OnErrorExit;
-        }
         /* save this in a statical variable until ucs2vol move to C */
         ucsContextS = &ucsContext;
     }
@@ -613,25 +471,13 @@ STATIC void ucs2_writei2c_CB (void *result_ptr, void *request_ptr) {
     }
 }
 
-PUBLIC void ucs2_writei2c (struct afb_req request) {
+/* write a single i2c command */
+STATIC void ucs2_writei2c_cmd(struct afb_req request, json_object *j_obj) {
     
-    struct json_object *j_obj;
     static uint8_t i2c_data[I2C_MAX_DATA_SZ];
     uint8_t i2c_data_sz = 0;
     uint16_t node_addr = 0;
     struct afb_req *async_req_ptr = NULL;
-    
-    /* check UNICENS is initialised */
-    if (!ucsContextS) {
-        afb_req_fail_f(request, "unicens-init","Should Load Config before using setvol");
-        goto OnErrorExit;
-    }
-
-    j_obj = afb_req_json(request);
-    if (!j_obj) {
-        afb_req_fail_f(request, "query-notjson","query=%s not a valid json entry", afb_req_value(request,""));
-        goto OnErrorExit;
-    };
     
     node_addr = (uint16_t)json_object_get_int(json_object_object_get(j_obj, "node"));
     AFB_NOTICE("node_address: 0x%02X", node_addr);
@@ -671,7 +517,7 @@ PUBLIC void ucs2_writei2c (struct afb_req request) {
         afb_req_fail_f(request, "query-params","params wrong or missing");
         goto OnErrorExit;
     }
-    
+   
     async_req_ptr = malloc(sizeof(afb_req));
     *async_req_ptr = request;
     
@@ -695,6 +541,49 @@ PUBLIC void ucs2_writei2c (struct afb_req request) {
         free(async_req_ptr);
         async_req_ptr = NULL;
         goto OnErrorExit;
+    }
+    
+OnErrorExit:
+    return;
+}
+
+/* parse array or single command */
+PUBLIC void ucs2_writei2c (struct afb_req request) {
+    
+    struct json_object *j_obj;
+    
+    /* check UNICENS is initialised */
+    if (!ucsContextS) {
+        afb_req_fail_f(request, "unicens-init","Should Load Config before using setvol");
+        goto OnErrorExit;
+    }
+
+    j_obj = afb_req_json(request);
+    if (!j_obj) {
+        afb_req_fail_f(request, "query-notjson","query=%s not a valid json entry", afb_req_value(request,""));
+        goto OnErrorExit;
+    };
+    
+    AFB_DEBUG("request: %s", json_object_to_json_string(j_obj));
+    
+    if (json_object_get_type(j_obj)==json_type_array) {
+        
+        int cnt;
+        int len = json_object_array_length(j_obj);
+        
+        if (len != 1) {
+            afb_req_fail_f(request, "query-array","query of multiple commands is not supported");
+            goto OnErrorExit;
+        }
+        
+        for (cnt = 0; cnt < len; cnt++) {
+            
+            json_object *j_cmd = json_object_array_get_idx(j_obj, cnt);
+            ucs2_writei2c_cmd(request, j_cmd);
+        }
+    }
+    else {
+        ucs2_writei2c_cmd(request, j_obj);
     }
     
  OnErrorExit:

@@ -46,7 +46,6 @@ extern struct afb_service afbSrv;
 PUBLIC void ucs2_configure (struct afb_req request);
 PUBLIC void ucs2_subscribe (struct afb_req request);
 PUBLIC void ucs2_writei2c  (struct afb_req request);
-PUBLIC void ucs2_volume    (struct afb_req request);
 
 #endif /* UCS2BINDING_H */
 

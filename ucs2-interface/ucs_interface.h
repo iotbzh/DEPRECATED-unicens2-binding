@@ -41,18 +41,6 @@ extern "C" {
 /*                            Public API                                */
 /*>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>*/
 
-// Fulup interface added to support ucs2vol
-typedef const struct {
-    char* name;
-    int numid;
-} UCSI_channelsT;
-
-typedef void (*UCSI_VolumeServiceCB_t)(uint16_t timeout);
-UCSI_channelsT *UCSI_Vol_Init (UCSI_Data_t *pPriv, UCSI_VolumeServiceCB_t serviceCB);
-uint8_t UCSI_Vol_Set  (UCSI_Data_t *pPriv, int numId, uint8_t volume);
-void UCSI_Vol_Service (UCSI_Data_t *pPriv);
-
-
 /**
  * \brief Initializes Unicens Integration module.
  * \note Must be called before any other function of this component

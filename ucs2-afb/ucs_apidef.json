@@ -182,25 +182,6 @@
           "200": {"$ref": "#/components/responses/200"}
         }
       }
-    },
-    "/volume": {
-      "description": "Set Master Volume (DEPRECATED).",
-      "get": {
-        "x-permissions": {
-          "$ref": "#/components/x-permissions/monitor"
-        },
-        "parameters": [
-          {
-            "in": "query",
-            "name": "value",
-            "required": true,
-            "schema": { "type": "integer" }
-          }
-        ],
-        "responses": {
-          "200": {"$ref": "#/components/responses/200"}
-        }
-      }
     }
   }
 }

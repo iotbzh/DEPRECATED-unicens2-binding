@@ -18,19 +18,18 @@
     <ol>
     <li><button onclick="callbinder('UNICENS','subscribe', {})">Subscribe to events</button></li>
     <li><button onclick="callbinder('UNICENS','initialise', {filename:ucs2_config})">Parse XML and Start UNICENS</button></li>
-    <li><button onclick="callbinder('UNICENS','volume', {channel:'master', volume: 255})">Set Master Volume to 255</button></li>
-    <li><button onclick="callbinder('unicens','volume', {channel:'master', volume: 230})">Set Master Volume to 230</button></li>
-    <li><button onclick="callbinder('unicens','volume', {channel:'master', volume: 215})">Set Master Volume to 215</button></li>
-    <li><button onclick="callbinder('unicens','volume', {channel:'master', volume: 200})">Set Master Volume to 200</button></li>
-    <li><button onclick="callbinder('unicens','volume', {channel:'master', volume: 185})">Set Master Volume to 185</button></li>
-    <li><button onclick="callbinder('unicens','volume', {channel:'master', volume: 0})">Set Master Volume to 0</button></li>
     </ol>
     <br>
+    <!--
     <ol>
-    <li><button onclick="callbinder('UNICENS','volume', [[0,200], [1,255]])">Set left=200 right=250</button></li>
-    <li><button onclick="callbinder('UNICENS','volume', [[0,255], [1,200]])">Set right=250 left=200</button></li>
-    <li><button onclick="callbinder('UNICENS','volume', [[0,255], [1,255]])">Set right=255 left=255</button></li>
+    <li><button onclick="callbinder('UNICENS','writei2c', [{node: 0x270, data:[0x07,0x01,0x00]}, {node: 0x271, data:[0x07,0x01,0x00]}, {node: 0x272, data:[0x07,0x01,0x00]}] )">WriteI2c Master (100%)</button></li>
+    <li><button onclick="callbinder('UNICENS','writei2c', [{node: 0x270, data:[0x07,0x01,0x99]}, {node: 0x271, data:[0x07,0x01,0x99]}, {node: 0x272, data:[0x07,0x01,0x99]}] )">WriteI2c Master (80%)</button></li>
+    <li><button onclick="callbinder('UNICENS','writei2c', [{node: 0x270, data:[0x07,0x02,0x32]}, {node: 0x271, data:[0x07,0x02,0x32]}, {node: 0x272, data:[0x07,0x02,0x32]}] )">WriteI2c Master (60%)</button></li>
+    <li><button onclick="callbinder('UNICENS','writei2c', [{node: 0x270, data:[0x07,0x02,0xCB]}, {node: 0x271, data:[0x07,0x02,0xCB]}, {node: 0x272, data:[0x07,0x02,0xCB]}] )">WriteI2c Master (40%)</button></li>
+    <li><button onclick="callbinder('UNICENS','writei2c', [{node: 0x270, data:[0x07,0x03,0x64]}, {node: 0x271, data:[0x07,0x03,0x64]}, {node: 0x272, data:[0x07,0x03,0x64]}] )">WriteI2c Master (20%)</button></li>
+    <li><button onclick="callbinder('UNICENS','writei2c', [{node: 0x270, data:[0x07,0x03,0xFF]}, {node: 0x271, data:[0x07,0x03,0xFF]}, {node: 0x272, data:[0x07,0x03,0xFF]}] )">WriteI2c Master (0%)</button></li>
     </ol>
+    -->
     <br>
     <ol>
     <li><button onclick="callbinder('UNICENS','writei2c', {node: 0x270, data:[0x07,0x03,0xFF]})">WriteI2c to 0x270 (mute)</button></li>
