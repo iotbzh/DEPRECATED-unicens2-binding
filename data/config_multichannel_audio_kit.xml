@@ -74,7 +74,9 @@
     <I2CPortWrite Address="0x2A" Payload="06 00"/>
     <I2CPortWrite Address="0x2A" Payload="05 00"/>
     <!-- Register 7: Master Volume (Max Volume=07 00 00 and Min Volume=07 03 FF) -->
-    <I2CPortWrite Address="0x2A" Payload="07 01 50"/>
+    <!--   - together with HAL-MOST-UNICENS binding use "07 03 FF" = muted after start -->
+    <!--   - otherwise use "07 01 50" = default volume -->
+    <I2CPortWrite Address="0x2A" Payload="07 03 FF"/>
   </Script>
 
   <!-- 1st Aux IO -->

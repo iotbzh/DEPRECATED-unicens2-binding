@@ -154,4 +154,19 @@ Note: remote-target-populate will
 
 Note that Netbeans impose to set debug directory to ./build/pkgout or it won't find binding symbols for source debugging
 
+# Default Volume of Amplifiers
+The binding currently supports two use cases for amplifiers.
+1. Amplifiers are initialized with a default volume. The head unit uses software volume 
+   to change the volume of streaming data.
+2. Amplifiers are initialized muted. The head unit uses hardware volume (e.g. HAL-MOST-UNICENS)
+   to change the volume of amplifiers remotely.
 
+Use case 2 is the default use case. If you like to use this binding without hardware volume support
+please adopt the ```config_multichannel_audio_kit.xml``` as explained below.
+
+```
+<!-- Register 7: Master Volume (Max Volume=07 00 00 and Min Volume=07 03 FF) -->
+<!--   - together with HAL-MOST-UNICENS binding use "07 03 FF" = muted after start -->
+<!--   - otherwise use "07 01 50" = default volume -->
+<I2CPortWrite Address="0x2A" Payload="07 03 FF"/>
+```

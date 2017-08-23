@@ -174,6 +174,7 @@ bool UCSI_ProcessRxData(UCSI_Data_t *my,
 
 void UCSI_Service(UCSI_Data_t *my)
 {
+    Ucs_Return_t ret;
     UnicensCmdEntry_t *e;
     bool popEntry = true; /*Set to false in specific case, where function will callback asynchrony.*/
     assert(MAGIC == my->magic);
@@ -218,12 +219,13 @@ void UCSI_Service(UCSI_Data_t *my)
                 UCSI_CB_OnUserMessage(my->tag, true, "UnicensCmd_GpioWritePort failed", 0);
             break;
         case UnicensCmd_I2CWrite:
-            if (UCS_RET_SUCCESS == Ucs_I2c_WritePort(my->unicens, e->val.I2CWrite.destination, 0x0F00, 
+            ret = Ucs_I2c_WritePort(my->unicens, e->val.I2CWrite.destination, 0x0F00, 
                 (e->val.I2CWrite.isBurst ? UCS_I2C_BURST_MODE : UCS_I2C_DEFAULT_MODE), e->val.I2CWrite.blockCount,
-                e->val.I2CWrite.slaveAddr, e->val.I2CWrite.timeout, e->val.I2CWrite.dataLen, e->val.I2CWrite.data, OnUcsI2CWrite))
+                e->val.I2CWrite.slaveAddr, e->val.I2CWrite.timeout, e->val.I2CWrite.dataLen, e->val.I2CWrite.data, OnUcsI2CWrite);
+            if (UCS_RET_SUCCESS == ret)
                 popEntry = false;
             else {
-                UCSI_CB_OnUserMessage(my->tag, true, "Ucs_I2c_WritePort failed", 0);
+                UCSI_CB_OnUserMessage(my->tag, true, "Ucs_I2c_WritePort failed ret=%d", 1, ret);
                 assert(e->val.I2CWrite.result_fptr != NULL);
                 e->val.I2CWrite.result_fptr(NULL /*processing error*/, e->val.I2CWrite.request_ptr);
             }
