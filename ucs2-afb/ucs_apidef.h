@@ -60,37 +60,43 @@ static const struct afb_verb_v2 _afb_verbs_v2_UNICENS[] = {
         .verb = "listconfig",
         .callback = ucs2_listconfig,
         .auth = &_afb_auths_v2_UNICENS[0],
-        .info = NULL,
+        .info = "List Config Files",
         .session = AFB_SESSION_NONE_V2
     },
     {
         .verb = "initialise",
         .callback = ucs2_initialise,
         .auth = &_afb_auths_v2_UNICENS[0],
-        .info = NULL,
+        .info = "configure Unicens2 lib from NetworkConfig.XML.",
         .session = AFB_SESSION_NONE_V2
     },
     {
         .verb = "subscribe",
         .callback = ucs2_subscribe,
         .auth = &_afb_auths_v2_UNICENS[1],
-        .info = NULL,
+        .info = "Subscribe to UNICENS Events.",
         .session = AFB_SESSION_NONE_V2
     },
     {
         .verb = "writei2c",
         .callback = ucs2_writei2c,
         .auth = &_afb_auths_v2_UNICENS[1],
-        .info = NULL,
+        .info = "Writes I2C command to remote node.",
         .session = AFB_SESSION_NONE_V2
     },
-    { .verb = NULL }
+    {
+        .verb = NULL,
+        .callback = NULL,
+        .auth = NULL,
+        .info = NULL,
+        .session = 0
+	}
 };
 
 const struct afb_binding_v2 afbBindingV2 = {
     .api = "UNICENS",
     .specification = _afb_description_v2_UNICENS,
-    .info = NULL,
+    .info = "",
     .verbs = _afb_verbs_v2_UNICENS,
     .preinit = NULL,
     .init = NULL,

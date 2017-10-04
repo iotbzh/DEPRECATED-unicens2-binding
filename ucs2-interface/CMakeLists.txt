@@ -20,18 +20,17 @@
 PROJECT_TARGET_ADD(ucs2-inter)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DNDEBUG")
 
-    # Define targets 
+    # Define targets
     ADD_LIBRARY(ucs2-inter STATIC ucs_lib_interf.c ucs-xml/UcsXml.c ucs-xml/UcsXml_Private.c)
 
     # Library properties
     SET_TARGET_PROPERTIES(ucs2-inter PROPERTIES OUTPUT_NAME ucs2interface)
-   
+
     # Depends on Unicens2 lib
-    TARGET_LINK_LIBRARIES(ucs2-inter ucs2-lib)
+    TARGET_LINK_LIBRARIES(ucs2-inter ucs2-lib mxml)
 
     # Define includes
-    TARGET_INCLUDE_DIRECTORIES(ucs2-inter 
+    TARGET_INCLUDE_DIRECTORIES(ucs2-inter
         PUBLIC  ${CMAKE_CURRENT_SOURCE_DIR}
+        INTERFACE mxml
     )
-
-

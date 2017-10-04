@@ -60,7 +60,7 @@ set (gcc_minimal_version 4.9)
 # PKG_CONFIG required packages
 # -----------------------------
 set (PKG_REQUIRED_LIST
-	mxml
+	#mxml
 	json-c
 	libsystemd>=222
 	afb-daemon

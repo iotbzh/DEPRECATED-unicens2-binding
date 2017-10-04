@@ -16,24 +16,27 @@
 # limitations under the License.
 ###########################################################################
 
-# Add target to project dependency list
-PROJECT_TARGET_ADD(ucs2-afb)
+set(MXML external-mxml)
+set(MXML_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/mxml)
+include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
+ExternalProject_Add(${MXML}
+    GIT_REPOSITORY https://github.com/michaelrsweet/mxml.git
+    GIT_TAG release-2.10
+    SOURCE_DIR ${MXML_SOURCE_DIR}
+    CONFIGURE_COMMAND ./configure --build x86_64 --host aarch64
+    BUILD_COMMAND make libmxml.so.1.5
+    BUILD_IN_SOURCE 1
+    INSTALL_COMMAND ""
+)
 
-    # Define project Targets
-    ADD_LIBRARY(${TARGET_NAME} MODULE ucs_apihat.c ucs_binding.c )
+PROJECT_TARGET_ADD(mxml)
 
-    SET_OPENAPI_FILENAME(ucs_apidef)
+add_library(${TARGET_NAME} SHARED IMPORTED GLOBAL)
 
-    # Binder exposes a unique public entry point
-    SET_TARGET_PROPERTIES(${TARGET_NAME} PROPERTIES
-    PREFIX "afb-"
-    LABELS "BINDINGV2"
-    LINK_FLAGS  ${BINDINGS_LINK_FLAG}
-    OUTPUT_NAME ucs2
-    )
+SET_TARGET_PROPERTIES(${TARGET_NAME} PROPERTIES
+    LABELS LIBRARY
+    IMPORTED_LOCATION ${MXML_SOURCE_DIR}/libmxml.so.1
+    INTERFACE_INCLUDE_DIRECTORIES ${MXML_SOURCE_DIR}
+)
 
-    # Library dependencies (include updates automatically)
-    TARGET_LINK_LIBRARIES(${TARGET_NAME}
-        ucs2-inter
-        ${link_libraries}
-    )
+add_dependencies(${TARGET_NAME} ${MXML})
