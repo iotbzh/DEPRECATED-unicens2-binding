@@ -710,29 +710,30 @@ static ParseResult_t ParseAll(mxml_node_t *tree, UcsXmlVal_t *ucs, PrivateData_t
         if (Parse_Success != (result = ParseNode(sub, priv)))
             return result;
         /*/Iterate all connections. Node without any connection is also valid.*/
-        if (!GetElementArray(sub->child, ALL_CONNECTIONS, &conType, &con))
-            continue;
-        while(con)
+        if (GetElementArray(sub->child, ALL_CONNECTIONS, &conType, &con))
         {
-            const char *socTypeStr;
-            MSocketType_t socType;
-            mxml_node_t *soc;
-            memset(&priv->conData, 0, sizeof(ConnectionData_t));
-            if (Parse_Success != (result = ParseConnection(con, conType, priv)))
-                return result;
-            /*Iterate all sockets*/
-            if(!GetElementArray(con->child, ALL_SOCKETS, &socTypeStr, &soc)) RETURN_ASSERT(Parse_XmlError);
-            while(soc)
+            while(con)
             {
-                if (!GetSocketType(socTypeStr, &socType)) RETURN_ASSERT(Parse_XmlError);
-                if (Parse_Success != (result = ParseSocket(soc, (0 == priv->conData.sockCnt), socType, &priv->conData.jobList, priv)))
+                const char *socTypeStr;
+                MSocketType_t socType;
+                mxml_node_t *soc;
+                memset(&priv->conData, 0, sizeof(ConnectionData_t));
+                if (Parse_Success != (result = ParseConnection(con, conType, priv)))
                     return result;
-                ++priv->conData.sockCnt;
-                if(!GetElementArray(soc, ALL_SOCKETS, &socTypeStr, &soc))
+                /*Iterate all sockets*/
+                if(!GetElementArray(con->child, ALL_SOCKETS, &socTypeStr, &soc)) RETURN_ASSERT(Parse_XmlError);
+                while(soc)
+                {
+                    if (!GetSocketType(socTypeStr, &socType)) RETURN_ASSERT(Parse_XmlError);
+                    if (Parse_Success != (result = ParseSocket(soc, (0 == priv->conData.sockCnt), socType, &priv->conData.jobList, priv)))
+                        return result;
+                    ++priv->conData.sockCnt;
+                    if(!GetElementArray(soc, ALL_SOCKETS, &socTypeStr, &soc))
+                        break;
+                }
+                if(!GetElementArray(con, ALL_CONNECTIONS, &conType, &con))
                     break;
             }
-            if(!GetElementArray(con, ALL_CONNECTIONS, &conType, &con))
-                break;
         }
         ++ucs->nodSize;
         if (!GetElement(sub, NODE, false, &sub, false))
