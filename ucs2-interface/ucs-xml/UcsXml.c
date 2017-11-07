@@ -756,7 +756,7 @@ static ParseResult_t ParseNode(mxml_node_t *node, PrivateData_t *priv)
                 UcsXml_CB_OnError("Unknown Port:'%s'", 1, txt);
                 RETURN_ASSERT(Parse_XmlError);
             }
-            if(!GetElementArray(port, ALL_SOCKETS, &txt, &port))
+            if(!GetElementArray(port, ALL_PORTS, &txt, &port))
                 break;
         }
     }
