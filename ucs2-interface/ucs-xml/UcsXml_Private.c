@@ -31,6 +31,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include "UcsXml.h"
 #include "UcsXml_Private.h"
 
 static const char* USB_PHY_STANDARD =       "Standard";
@@ -69,8 +70,8 @@ static const char* VAL_TRUE =               "true";
 static const char* VAL_FALSE =              "false";
  */
 
-#define ASSERT_FALSE() { assert(false); return false; }
-#define CHECK_POINTER(PTR) if (NULL == PTR) { ASSERT_FALSE(); }
+#define ASSERT_FALSE(func, par) { UcsXml_CB_OnError("Parameter error in attribute=%s value=%s, file=%s, line=%d", 4, func, par,  __FILE__, __LINE__); return false; }
+#define CHECK_POINTER(PTR) if (NULL == PTR) { ASSERT_FALSE(PTR, "NULL pointer"); }
 
 static int32_t Str2Int(const char *val)
 {
@@ -149,7 +150,7 @@ bool GetMostSocket(Ucs_Xrm_MostSocket_t **mostSoc, struct MostSocketParameters *
         soc->data_type = UCS_MOST_SCKT_DISC_FRAME_PHASE;
         break;
     default:
-        ASSERT_FALSE();
+        ASSERT_FALSE("GetMostSocket->dataType", "");
     }
     return true;
 }
@@ -176,7 +177,7 @@ bool GetUsbPort(Ucs_Xrm_UsbPort_t **usbPort, struct UsbPortParameters *param)
         port->physical_layer = UCS_USB_PHY_LAYER_STANDARD;
     else if (0 == strcmp(USB_PHY_HSIC, param->physicalLayer))
         port->physical_layer = UCS_USB_PHY_LAYER_HSCI;
-    else ASSERT_FALSE();
+    else ASSERT_FALSE("GetUsbPort->physical_layer", param->physicalLayer);
     return true;
 }
 
@@ -220,7 +221,7 @@ bool GetUsbSocket(Ucs_Xrm_UsbSocket_t **usbSoc, struct UsbSocketParameters *para
         soc->data_type = UCS_USB_SCKT_IPC_PACKET;
         break;
     default:
-        ASSERT_FALSE();
+        ASSERT_FALSE("GetUsbSocket->dataType", "");
     }
     soc->end_point_addr = (uint8_t)Str2Int(param->endpointAddress);
     soc->frames_per_transfer = (uint16_t)Str2Int(param->framesPerTrans);
@@ -256,7 +257,7 @@ bool GetMlbPort(Ucs_Xrm_MlbPort_t **mlbPort, struct MlbPortParameters *param)
         port->clock_config = UCS_MLB_CLK_CFG_6144_FS;
     else if (0 == strcmp(param->clockConfig, CLOCK_8192FS))
         port->clock_config = UCS_MLB_CLK_CFG_8192_FS;
-    else ASSERT_FALSE();
+    else ASSERT_FALSE("GetMlbPort->clockConfig", param->clockConfig);
     return true;
 }
 
@@ -306,7 +307,7 @@ bool GetMlbSocket(Ucs_Xrm_MlbSocket_t **mlbSoc, struct MlbSocketParameters *para
         soc->data_type = UCS_MLB_SCKT_IPC_PACKET;
         break;
     default:
-        ASSERT_FALSE();
+        ASSERT_FALSE("GetMlbSocket->dataType", "");
     }
     soc->channel_address = (uint16_t)Str2Int(param->channelAddress);
     soc->mlb_port_obj_ptr = param->mlbPort;
@@ -343,7 +344,7 @@ bool GetStrmPort(Ucs_Xrm_StrmPort_t **strmPort, struct StrmPortParameters *param
             port->clock_config = UCS_STREAM_PORT_CLK_CFG_512FS;
         else if (0 == strcmp(param->clockConfig, CLOCK_WILDCARD))
             port->clock_config = UCS_STREAM_PORT_CLK_CFG_WILD;
-        else ASSERT_FALSE();
+        else ASSERT_FALSE("GetStrmPort->clockConfig", param->clockConfig);
     } else {
         port->clock_config = UCS_STREAM_PORT_CLK_CFG_WILD;
     }
@@ -358,7 +359,7 @@ bool GetStrmPort(Ucs_Xrm_StrmPort_t **strmPort, struct StrmPortParameters *param
         port->data_alignment = UCS_STREAM_PORT_ALGN_RIGHT24BIT;
     else if (0 == strcmp(param->dataAlignment, STRM_ALIGN_SEQUENTIAL))
         port->data_alignment = UCS_STREAM_PORT_ALGN_SEQ;
-    else ASSERT_FALSE();
+    else ASSERT_FALSE("GetStrmPort->dataAlignment", param->dataAlignment);
     return true;
 }
 
@@ -382,7 +383,7 @@ bool GetStrmSocket(Ucs_Xrm_StrmSocket_t **strmSoc, struct StrmSocketParameters *
         soc->data_type = UCS_STREAM_PORT_SCKT_SYNC_DATA;
         break;
     default:
-        ASSERT_FALSE();
+        ASSERT_FALSE("GetStrmSocket->dataType", "");
     }
     soc->bandwidth = param->bandwidth;
     if (0 == strcmp(param->streamPin, I2S_PIN_SRXA0))
@@ -409,7 +410,7 @@ bool GetStrmSocket(Ucs_Xrm_StrmSocket_t **strmSoc, struct StrmSocketParameters *
         soc->stream_port_obj_ptr = param->streamPortB;
         return true;
     }
-    else ASSERT_FALSE();
+    else ASSERT_FALSE("GetStrmSocket->streamPin", param->streamPin);
     return true;
 }
 
@@ -462,7 +463,7 @@ bool GetSyncCon(Ucs_Xrm_SyncCon_t **syncCon, struct SyncConParameters *param)
         con->mute_mode = UCS_SYNC_MUTE_MODE_NO_MUTING;
     else if (0 == strcmp(param->muteMode, MUTE_SIGNAL))
         con->mute_mode = UCS_SYNC_MUTE_MODE_MUTE_SIGNAL;
-    else ASSERT_FALSE();
+    else ASSERT_FALSE("GetSyncCon->mute_mode", param->muteMode);
     if (param->optional_offset)
         con->offset = (uint16_t)Str2Int(param->optional_offset);
     else
@@ -501,7 +502,7 @@ bool GetAvpCon(Ucs_Xrm_AvpCon_t **avpCon, struct AvpConParameters *param)
             con->isoc_packet_size = UCS_ISOC_PCKT_SIZE_206;
             break;
         default:
-            ASSERT_FALSE();
+            ASSERT_FALSE("GetAvpCon->isoc_packet_size", "");
         }
     } else {
         con->isoc_packet_size = UCS_ISOC_PCKT_SIZE_188;
