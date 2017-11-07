@@ -858,7 +858,7 @@ void App_TraceError(void *ucs_user_ptr, const char module_str[], const char entr
 {
     va_list argptr;
     char outbuf[TRACE_BUFFER_SZ];
-    void *tag;
+    void *tag = NULL;
     UCSI_Data_t *my = (UCSI_Data_t *)ucs_user_ptr;
     if (my)
     {
@@ -875,7 +875,7 @@ void App_TraceInfo(void *ucs_user_ptr, const char module_str[], const char entry
 {
     va_list argptr;
     char outbuf[TRACE_BUFFER_SZ];
-    void *tag;
+    void *tag = NULL;
     UCSI_Data_t *my = (UCSI_Data_t *)ucs_user_ptr;
     if (my)
     {
