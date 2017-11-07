@@ -197,7 +197,7 @@ void UCSI_CB_OnAmsMessageReceived(void *pTag)
 	   Don't forget to call UCSI_ReleaseAmsMessage after that */
 }
 
-void UCSI_CB_OnRouteResult(void *pTag, uint16_t routeId, bool isActive)
+void UCSI_CB_OnRouteResult(void *pTag, uint16_t routeId, bool isActive, uint16_t connectionLabel)
 {
 }
 
