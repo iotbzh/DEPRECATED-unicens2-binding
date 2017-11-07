@@ -232,6 +232,7 @@ static bool GetElementArray(mxml_node_t *element, const char *array[], const cha
 static bool GetCount(mxml_node_t *element, const char *name, uint32_t *out, bool mandatory);
 static bool GetCountArray(mxml_node_t *element, const char *array[], uint32_t *out, bool mandatory);
 static bool GetString(mxml_node_t *element, const char *key, const char **out, bool mandatory);
+static bool CheckInteger(const char *val, bool forceHex);
 static bool GetUInt16(mxml_node_t *element, const char *key, uint16_t *out, bool mandatory);
 static bool GetUInt8(mxml_node_t *element, const char *key, uint8_t *out, bool mandatory);
 static bool GetSocketType(const char *txt, MSocketType_t *out);
@@ -419,19 +420,70 @@ static bool GetString(mxml_node_t *element, const char *key, const char **out, b
     return false;
 }
 
+static bool CheckInteger(const char *value, bool forceHex)
+{
+    bool hex = forceHex;
+    int32_t len;
+    if (!value) return false;
+    len = strlen(value);
+    if (len >= 3 && '0' == value[0] && 'x' == value[1])
+    {
+        hex = true;
+        value += 2;
+    }
+    while(value[0])
+    {
+        bool valid = false;
+        uint8_t v = value[0];
+        if (v >= '0' && v <= '9') valid = true;
+        if (hex)
+        {
+            if (v >= 'a' && v <= 'f') valid = true;
+            if (v >= 'A' && v <= 'F') valid = true;
+        }
+        if (!valid) return false;
+        ++value;
+    }
+    return true;
+}
+
 static bool GetUInt16(mxml_node_t *element, const char *key, uint16_t *out, bool mandatory)
 {
+    long int value;
     const char* txt;
     if (!GetString(element, key, &txt, mandatory)) return false;
-    *out = strtol( txt, NULL, 0 );
+    if (!CheckInteger(txt, false))
+    {
+        UcsXml_CB_OnError("key='%s' contained invalid integer='%s'", 2, key, txt);
+        return false;
+    }
+    value = strtol( txt, NULL, 0 );
+    if (value > 0xFFFF)
+    {
+        UcsXml_CB_OnError("key='%s' is out of range='%d'", 2, key, value);
+        return false;
+    }
+    *out = value;
     return true;
 }
 
 static bool GetUInt8(mxml_node_t *element, const char *key, uint8_t *out, bool mandatory)
 {
+    long int value;
     const char* txt;
     if (!GetString(element, key, &txt, mandatory)) return false;
-    *out = strtol( txt, NULL, 0 );
+    if (!CheckInteger(txt, false))
+    {
+        UcsXml_CB_OnError("key='%s' contained invalid integer='%s'", 2, key, txt);
+        return false;
+    }
+    value = strtol( txt, NULL, 0 );
+    if (value > 0xFF)
+    {
+        UcsXml_CB_OnError("key='%s' is out of range='%d'", 2, key, value);
+        return false;
+    }
+    *out = value;
     return true;
 }
 
@@ -505,6 +557,13 @@ static bool GetPayload(mxml_node_t *element, const char *name, uint8_t **pPayloa
         if( len >= tempLen )
         {
             UcsXml_CB_OnError("Script payload values must be stuffed to two characters", 0);
+            free(txtCopy);
+            assert(false);
+            return 0;
+        }
+        if (!CheckInteger(token, true))
+        {
+            UcsXml_CB_OnError("Script payload contains non valid hex number='%s'", 1, token);
             free(txtCopy);
             assert(false);
             return 0;
