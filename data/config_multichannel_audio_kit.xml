@@ -12,33 +12,6 @@
     </SyncConnection>
   </Node>
   
-  <!-- 1st Microphone -->
-  <Node Address="0x210">
-    <StreamPort ClockConfig="64Fs" DataAlignment="Left24Bit"/>
-    <SyncConnection MuteMode="NoMuting">
-      <StreamSocket StreamPinID="SRXA0" Bandwidth="6"/>
-      <MOSTSocket Route="Microphone1" Bandwidth="6"/>
-    </SyncConnection>
-  </Node>
-
-  <!-- 2nd Microphone -->
-  <Node Address="0x211">
-    <StreamPort ClockConfig="64Fs" DataAlignment="Left24Bit"/>
-    <SyncConnection MuteMode="NoMuting">
-      <StreamSocket StreamPinID="SRXA0" Bandwidth="6"/>
-      <MOSTSocket Route="Microphone2" Bandwidth="6"/>
-    </SyncConnection>
-  </Node>
-
-  <!-- 3rd Microphone -->
-  <Node Address="0x212">
-    <StreamPort ClockConfig="64Fs" DataAlignment="Left24Bit"/>
-    <SyncConnection MuteMode="NoMuting">
-      <StreamSocket StreamPinID="SRXA0" Bandwidth="6"/>
-      <MOSTSocket Route="Microphone3" Bandwidth="6"/>
-    </SyncConnection>
-  </Node>
-
   <!-- 1st Slim Amplifier -->
   <Node Address="0x270" Script="slim-amp-config">
     <StreamPort ClockConfig="64Fs" DataAlignment="Left16Bit"/>
@@ -107,8 +80,9 @@
   <Script Name="aux-io-config">
     <I2CPortCreate Speed="FastMode"/>
     <I2CPortWrite Mode="BurstMode" BlockCount="10" Address="0x18" Length="3" Timeout="100"
-                  Payload="00 0f 02 01 00 00 02 a5 df 03 3f 3f 04 02 02 10 00 00 11 00 00 12 00 00 13 00 00 14 00 00"/>
+                  Payload="00 0f 02 01 00 00 02 a5 df 03 3f 3f 04 02 02 10 30 30 11 00 00 12 00 00 13 00 00 14 00 00"/>
     <I2CPortWrite Mode="BurstMode" BlockCount="4" Address="0x18" Length="3" Timeout="100"
                   Payload="20 00 00 21 00 00 22 00 00 23 00 00"/>
+  <GPIOPortPinMode PinConfiguration="03 35 04 35 05 35 06 35 07 41 08 40"/>
   </Script>
 </Unicens>

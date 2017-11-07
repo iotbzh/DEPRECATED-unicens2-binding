@@ -1,5 +1,5 @@
 /*------------------------------------------------------------------------------------------------*/
-/* Unicens XML Parser                                                                             */
+/* UNICENS XML Parser                                                                             */
 /* Copyright 2017, Microchip Technology Inc. and its subsidiaries.                                */
 /*                                                                                                */
 /* Redistribution and use in source and binary forms, with or without                             */
@@ -38,7 +38,7 @@
 /************************************************************************/
 
 #define COMPILETIME_CHECK(cond)  (void)sizeof(int[2 * !!(cond) - 1])
-#define RETURN_ASSERT(result) { assert(false); return result; }
+#define RETURN_ASSERT(result) { UcsXml_CB_OnError("Assertion in file=%s, line=%d", 2, __FILE__, __LINE__); return result; }
 #define MISC_HB(value)      ((uint8_t)((uint16_t)(value) >> 8))
 #define MISC_LB(value)      ((uint8_t)((uint16_t)(value) & (uint16_t)0xFF))
 
@@ -54,6 +54,7 @@ struct UcsXmlRoute
 
 struct UcsXmlScript
 {
+    bool inUse;
     char scriptName[32];
     Ucs_Rm_Node_t *node;
     struct UcsXmlScript *next;
@@ -169,7 +170,7 @@ static const char* ALL_SOCKETS[] = { MOST_SOCKET, USB_SOCKET, MLB_SOCKET,
 #define MLB_PORT                            "MediaLBPort"
 #define USB_PORT                            "USBPort"
 #define STRM_PORT                           "StreamPort"
-static const char* ALL_PORTS[] = { MLB_PORT, USB_PORT, STRM_PORT };
+static const char* ALL_PORTS[] = { MLB_PORT, USB_PORT, STRM_PORT, NULL };
 
 static const char* PHYSICAL_LAYER =         "PhysicalLayer";
 static const char* DEVICE_INTERFACES =      "DeviceInterfaces";
@@ -231,6 +232,7 @@ static bool GetElementArray(mxml_node_t *element, const char *array[], const cha
 static bool GetCount(mxml_node_t *element, const char *name, uint32_t *out, bool mandatory);
 static bool GetCountArray(mxml_node_t *element, const char *array[], uint32_t *out, bool mandatory);
 static bool GetString(mxml_node_t *element, const char *key, const char **out, bool mandatory);
+static bool CheckInteger(const char *val, bool forceHex);
 static bool GetUInt16(mxml_node_t *element, const char *key, uint16_t *out, bool mandatory);
 static bool GetUInt8(mxml_node_t *element, const char *key, uint8_t *out, bool mandatory);
 static bool GetSocketType(const char *txt, MSocketType_t *out);
@@ -278,9 +280,9 @@ UcsXmlVal_t *UcsXml_Parse(const char *xmlString)
         return val;
 ERROR:
     if (Parse_MemoryError == result)
-        UcsXml_CB_OnError("XML error, aborting..", 0);
+        UcsXml_CB_OnError("XML memory error, aborting..", 0);
     else
-        UcsXml_CB_OnError("Allocation error, aborting..", 0);
+        UcsXml_CB_OnError("XML parsing error, aborting..", 0);
     assert(false);
     if (!tree)
         mxmlDelete(tree);
@@ -418,19 +420,70 @@ static bool GetString(mxml_node_t *element, const char *key, const char **out, b
     return false;
 }
 
+static bool CheckInteger(const char *value, bool forceHex)
+{
+    bool hex = forceHex;
+    int32_t len;
+    if (!value) return false;
+    len = strlen(value);
+    if (len >= 3 && '0' == value[0] && 'x' == value[1])
+    {
+        hex = true;
+        value += 2;
+    }
+    while(value[0])
+    {
+        bool valid = false;
+        uint8_t v = value[0];
+        if (v >= '0' && v <= '9') valid = true;
+        if (hex)
+        {
+            if (v >= 'a' && v <= 'f') valid = true;
+            if (v >= 'A' && v <= 'F') valid = true;
+        }
+        if (!valid) return false;
+        ++value;
+    }
+    return true;
+}
+
 static bool GetUInt16(mxml_node_t *element, const char *key, uint16_t *out, bool mandatory)
 {
+    long int value;
     const char* txt;
     if (!GetString(element, key, &txt, mandatory)) return false;
-    *out = strtol( txt, NULL, 0 );
+    if (!CheckInteger(txt, false))
+    {
+        UcsXml_CB_OnError("key='%s' contained invalid integer='%s'", 2, key, txt);
+        return false;
+    }
+    value = strtol( txt, NULL, 0 );
+    if (value > 0xFFFF)
+    {
+        UcsXml_CB_OnError("key='%s' is out of range='%d'", 2, key, value);
+        return false;
+    }
+    *out = value;
     return true;
 }
 
 static bool GetUInt8(mxml_node_t *element, const char *key, uint8_t *out, bool mandatory)
 {
+    long int value;
     const char* txt;
     if (!GetString(element, key, &txt, mandatory)) return false;
-    *out = strtol( txt, NULL, 0 );
+    if (!CheckInteger(txt, false))
+    {
+        UcsXml_CB_OnError("key='%s' contained invalid integer='%s'", 2, key, txt);
+        return false;
+    }
+    value = strtol( txt, NULL, 0 );
+    if (value > 0xFF)
+    {
+        UcsXml_CB_OnError("key='%s' is out of range='%d'", 2, key, value);
+        return false;
+    }
+    *out = value;
     return true;
 }
 
@@ -504,6 +557,13 @@ static bool GetPayload(mxml_node_t *element, const char *name, uint8_t **pPayloa
         if( len >= tempLen )
         {
             UcsXml_CB_OnError("Script payload values must be stuffed to two characters", 0);
+            free(txtCopy);
+            assert(false);
+            return 0;
+        }
+        if (!CheckInteger(token, true))
+        {
+            UcsXml_CB_OnError("Script payload contains non valid hex number='%s'", 1, token);
             free(txtCopy);
             assert(false);
             return 0;
@@ -650,29 +710,30 @@ static ParseResult_t ParseAll(mxml_node_t *tree, UcsXmlVal_t *ucs, PrivateData_t
         if (Parse_Success != (result = ParseNode(sub, priv)))
             return result;
         /*/Iterate all connections. Node without any connection is also valid.*/
-        if (!GetElementArray(sub->child, ALL_CONNECTIONS, &conType, &con))
-            continue;
-        while(con)
+        if (GetElementArray(sub->child, ALL_CONNECTIONS, &conType, &con))
         {
-            const char *socTypeStr;
-            MSocketType_t socType;
-            mxml_node_t *soc;
-            memset(&priv->conData, 0, sizeof(ConnectionData_t));
-            if (Parse_Success != (result = ParseConnection(con, conType, priv)))
-                return result;
-            /*Iterate all sockets*/
-            if(!GetElementArray(con->child, ALL_SOCKETS, &socTypeStr, &soc)) RETURN_ASSERT(Parse_XmlError);
-            while(soc)
+            while(con)
             {
-                if (!GetSocketType(socTypeStr, &socType)) RETURN_ASSERT(Parse_XmlError);
-                if (Parse_Success != (result = ParseSocket(soc, (0 == priv->conData.sockCnt), socType, &priv->conData.jobList, priv)))
+                const char *socTypeStr;
+                MSocketType_t socType;
+                mxml_node_t *soc;
+                memset(&priv->conData, 0, sizeof(ConnectionData_t));
+                if (Parse_Success != (result = ParseConnection(con, conType, priv)))
                     return result;
-                ++priv->conData.sockCnt;
-                if(!GetElementArray(soc, ALL_SOCKETS, &socTypeStr, &soc))
+                /*Iterate all sockets*/
+                if(!GetElementArray(con->child, ALL_SOCKETS, &socTypeStr, &soc)) RETURN_ASSERT(Parse_XmlError);
+                while(soc)
+                {
+                    if (!GetSocketType(socTypeStr, &socType)) RETURN_ASSERT(Parse_XmlError);
+                    if (Parse_Success != (result = ParseSocket(soc, (0 == priv->conData.sockCnt), socType, &priv->conData.jobList, priv)))
+                        return result;
+                    ++priv->conData.sockCnt;
+                    if(!GetElementArray(soc, ALL_SOCKETS, &socTypeStr, &soc))
+                        break;
+                }
+                if(!GetElementArray(con, ALL_CONNECTIONS, &conType, &con))
                     break;
             }
-            if(!GetElementArray(con, ALL_CONNECTIONS, &conType, &con))
-                break;
         }
         ++ucs->nodSize;
         if (!GetElement(sub, NODE, false, &sub, false))
@@ -687,6 +748,8 @@ static ParseResult_t ParseAll(mxml_node_t *tree, UcsXmlVal_t *ucs, PrivateData_t
     /*Iterate all scripts. No scripts at all is allowed*/
     if(GetElement(tree, SCRIPT, true, &sub, false))
     {
+        bool found = true;
+        struct UcsXmlScript *scrlist = priv->pScrLst;
         while(sub)
         {
             result = ParseScript(sub, priv);
@@ -695,6 +758,18 @@ static ParseResult_t ParseAll(mxml_node_t *tree, UcsXmlVal_t *ucs, PrivateData_t
             if(!GetElement(sub, SCRIPT, false, &sub, false))
                 break;
         }
+        /* Check if all scripts where referenced */
+        while(NULL != scrlist)
+        {
+            if (!scrlist->inUse)
+            {
+                UcsXml_CB_OnError("Script not defined:'%s', used by node=0x%X", 1, scrlist->scriptName, scrlist->node->signature_ptr->node_address);
+                found = false;
+            }
+            scrlist = scrlist->next;
+        }
+        if (!found)
+            RETURN_ASSERT(Parse_XmlError);
     }
     return result;
 }
@@ -756,7 +831,7 @@ static ParseResult_t ParseNode(mxml_node_t *node, PrivateData_t *priv)
                 UcsXml_CB_OnError("Unknown Port:'%s'", 1, txt);
                 RETURN_ASSERT(Parse_XmlError);
             }
-            if(!GetElementArray(port, ALL_SOCKETS, &txt, &port))
+            if(!GetElementArray(port, ALL_PORTS, &txt, &port))
                 break;
         }
     }
@@ -995,6 +1070,7 @@ static ParseResult_t ParseSocket(mxml_node_t *soc, bool isSource, MSocketType_t 
     /*Connect in and out socket once they are created*/
     if (priv->conData.inSocket && priv->conData.outSocket)
     {
+        bool mostIsInput;
         bool mostIsOutput;
         Ucs_Rm_EndPoint_t *ep;
         struct UcsXmlRoute *route;
@@ -1031,7 +1107,13 @@ static ParseResult_t ParseSocket(mxml_node_t *soc, bool isSource, MSocketType_t 
         ep = MCalloc(&priv->objList, 1, sizeof(Ucs_Rm_EndPoint_t));
         if (NULL == ep) RETURN_ASSERT(Parse_MemoryError);
 
+        mostIsInput = (UCS_XRM_RC_TYPE_MOST_SOCKET == *((Ucs_Xrm_ResourceType_t *)priv->conData.inSocket));
         mostIsOutput = (UCS_XRM_RC_TYPE_MOST_SOCKET == *((Ucs_Xrm_ResourceType_t *)priv->conData.outSocket));
+        if (!mostIsInput && !mostIsOutput)
+        {
+            UcsXml_CB_OnError("At least one MOST socket required per connection", 0);
+            RETURN_ASSERT(Parse_XmlError);
+        }
         ep->endpoint_type = mostIsOutput ? UCS_RM_EP_SOURCE : UCS_RM_EP_SINK;
         ep->jobs_list_ptr = GetJobList(*jobList, &priv->objList);
         if(NULL == ep->jobs_list_ptr) RETURN_ASSERT(Parse_MemoryError);
@@ -1102,7 +1184,7 @@ static ParseResult_t ParseScript(mxml_node_t *scr, PrivateData_t *priv)
             if (Parse_Success != result) return result;
         } else {
             UcsXml_CB_OnError("Unknown script action:'%s'", 1, txt);
-            /*RETURN_ASSERT(Parse_XmlError);*/
+            RETURN_ASSERT(Parse_XmlError);
         }
         if (!GetElementArray(act, ALL_SCRIPTS, &txt, &act))
             break;
@@ -1117,6 +1199,7 @@ static ParseResult_t ParseScript(mxml_node_t *scr, PrivateData_t *priv)
             Ucs_Rm_Node_t *node = scrlist->node;
             node->script_list_ptr = script;
             node->script_list_size = actCnt;
+            scrlist->inUse = true;
             found = true;
         }
         scrlist = scrlist->next;
@@ -1277,7 +1360,11 @@ static ParseResult_t ParseScriptPortCreate(mxml_node_t *act, Ucs_Ns_Script_t *sc
         speed = 0;
     else if (0 == strcmp(txt, I2C_SPEED_FAST))
         speed = 1;
-    else RETURN_ASSERT(Parse_XmlError);
+    else
+    {
+        UcsXml_CB_OnError("Invalid I2C speed:'%s'", 1, txt);
+        RETURN_ASSERT(Parse_XmlError);
+    }
     req = scr->send_cmd;
     res = scr->exp_result;
     req->InstId = res->InstId = 1;
@@ -1317,6 +1404,11 @@ static ParseResult_t ParseScriptPortWrite(mxml_node_t *act, Ucs_Ns_Script_t *scr
             mode = 1;
         else if (0 == strcmp(txt, I2C_WRITE_MODE_BURST))
             mode = 2;
+        else
+        {
+            UcsXml_CB_OnError("Invalid I2C mode:'%s'", 1, txt);
+            RETURN_ASSERT(Parse_XmlError);
+        }
     } else {
         mode = 0;
     }
@@ -1458,7 +1550,11 @@ static ParseResult_t ParseRoutes(UcsXmlVal_t *ucs, PrivateData_t *priv)
         }
         sourceRoute = sourceRoute->next;
     }
-    assert(routeAmount == ucs->routesSize);
+    if (routeAmount != ucs->routesSize)
+    {
+        UcsXml_CB_OnError("At least one sink (num=%d) is not connected, because of wrong Route name!", 2, (routeAmount - ucs->routesSize));
+        RETURN_ASSERT(Parse_XmlError);
+    }
 
 #ifdef DEBUG
     /* Third perform checks when running in debug mode*/

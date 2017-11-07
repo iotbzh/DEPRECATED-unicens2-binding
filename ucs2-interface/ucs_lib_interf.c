@@ -1,5 +1,5 @@
 /*------------------------------------------------------------------------------------------------*/
-/* Unicens Integration Helper Component                                                           */
+/* UNICENS Integration Helper Component                                                           */
 /* Copyright 2017, Microchip Technology Inc. and its subsidiaries.                                */
 /*                                                                                                */
 /* Redistribution and use in source and binary forms, with or without                             */
@@ -56,9 +56,9 @@ static void OnLldCtrlStop( void *lld_user_ptr );
 static void OnLldCtrlRxMsgAvailable( void *lld_user_ptr );
 static void OnLldCtrlTxTransmitC( Ucs_Lld_TxMsg_t *msg_ptr, void *lld_user_ptr );
 static void OnUnicensRoutingResult(Ucs_Rm_Route_t* route_ptr, Ucs_Rm_RouteInfos_t route_infos, void *user_ptr);
-static void OnUnicensMostPortStatus(uint16_t most_port_handle,
-    Ucs_Most_PortAvail_t availability, Ucs_Most_PortAvailInfo_t avail_info,
-    uint16_t free_streaming_bw, void* user_ptr);
+static void OnUnicensNetworkStatus(uint16_t change_mask, uint16_t events, Ucs_Network_Availability_t availability,
+    Ucs_Network_AvailInfo_t avail_info, Ucs_Network_AvailTransCause_t avail_trans_cause, uint16_t node_address,
+    uint8_t node_position, uint8_t max_position, uint16_t packet_bw, void *user_ptr);
 static void OnUnicensDebugXrmResources(Ucs_Xrm_ResourceType_t resource_type,
     Ucs_Xrm_ResObject_t *resource_ptr, Ucs_Xrm_ResourceInfos_t resource_infos,
     Ucs_Rm_EndPoint_t *endpoint_inst_ptr, void *user_ptr);
@@ -96,7 +96,7 @@ void UCSI_Init(UCSI_Data_t *my, void *pTag)
     result = Ucs_SetDefaultConfig(&my->uniInitData);
     if(UCS_RET_SUCCESS != result)
     {
-        UCSI_CB_OnUserMessage(my->tag, true, "Can not set default values to Unicens config (result=0x%X)", 1, result);
+        UCSI_CB_OnUserMessage(my->tag, true, "Can not set default values to UNICENS config (result=0x%X)", 1, result);
         assert(false);
         return;
     }
@@ -111,6 +111,8 @@ void UCSI_Init(UCSI_Data_t *my, void *pTag)
     my->uniInitData.general.debug_error_msg_fptr = &OnUnicensDebugErrorMsg;
     my->uniInitData.ams.enabled = ENABLE_AMS_LIB;
     my->uniInitData.ams.rx.message_received_fptr = &OnUcsAmsRxMsgReceived;
+    my->uniInitData.network.status.notification_mask = 0xC2;
+    my->uniInitData.network.status.cb_fptr = &OnUnicensNetworkStatus;
 
     my->uniInitData.lld.lld_user_ptr = my;
     my->uniInitData.lld.start_fptr =  &OnLldCtrlStart;
@@ -119,7 +121,6 @@ void UCSI_Init(UCSI_Data_t *my, void *pTag)
     my->uniInitData.lld.tx_transmit_fptr = &OnLldCtrlTxTransmitC;
 
     my->uniInitData.rm.report_fptr = &OnUnicensRoutingResult;
-    my->uniInitData.rm.xrm.most_port_status_fptr = &OnUnicensMostPortStatus;
     my->uniInitData.rm.debug_resource_status_fptr = &OnUnicensDebugXrmResources;
 
     my->uniInitData.gpio.trigger_event_status_fptr = &OnUcsGpioTriggerEventStatus;
@@ -470,7 +471,7 @@ static void OnUnicensError( Ucs_Error_t error_code, void *user_ptr )
     UCSI_Data_t *my = (UCSI_Data_t *)user_ptr;
     error_code = error_code;
     assert(MAGIC == my->magic);
-    UCSI_CB_OnUserMessage(my->tag, true, "Unicens general error, code=0x%X, restarting", 1, error_code);
+    UCSI_CB_OnUserMessage(my->tag, true, "UNICENS general error, code=0x%X, restarting", 1, error_code);
     e.cmd = UnicensCmd_Init;
     e.val.Init.init_ptr = &my->uniInitData;
     EnqueueCommand(my, &e);
@@ -556,21 +557,20 @@ static void OnLldCtrlTxTransmitC( Ucs_Lld_TxMsg_t *msg_ptr, void *lld_user_ptr )
 
 static void OnUnicensRoutingResult(Ucs_Rm_Route_t* route_ptr, Ucs_Rm_RouteInfos_t route_infos, void *user_ptr)
 {
+    uint16_t conLabel;
     UCSI_Data_t *my = (UCSI_Data_t *)user_ptr;
     assert(MAGIC == my->magic);
-    UCSI_CB_OnRouteResult(my->tag, route_ptr->route_id, UCS_RM_ROUTE_INFOS_BUILT == route_infos);
+    conLabel = Ucs_Rm_GetConnectionLabel(my->unicens, route_ptr);
+    UCSI_CB_OnRouteResult(my->tag, route_ptr->route_id, UCS_RM_ROUTE_INFOS_BUILT == route_infos, conLabel);
 }
 
-static void OnUnicensMostPortStatus(uint16_t most_port_handle,
-    Ucs_Most_PortAvail_t availability, Ucs_Most_PortAvailInfo_t avail_info,
-    uint16_t free_streaming_bw, void* user_ptr)
+static void OnUnicensNetworkStatus(uint16_t change_mask, uint16_t events, Ucs_Network_Availability_t availability,
+    Ucs_Network_AvailInfo_t avail_info, Ucs_Network_AvailTransCause_t avail_trans_cause, uint16_t node_address,
+    uint8_t node_position, uint8_t max_position, uint16_t packet_bw, void *user_ptr)
 {
-    /*TODO: implement*/
-    most_port_handle = most_port_handle;
-    availability = availability;
-    avail_info = avail_info;
-    free_streaming_bw = free_streaming_bw;
-    user_ptr = user_ptr;
+    UCSI_Data_t *my = (UCSI_Data_t *)user_ptr;
+    assert(MAGIC == my->magic);
+    UCSI_CB_OnNetworkState(my->tag, UCS_NW_AVAILABLE == availability, packet_bw, max_position);
 }
 
 static void OnUnicensDebugXrmResources(Ucs_Xrm_ResourceType_t resource_type,
@@ -848,10 +848,9 @@ static void OnUcsI2CWrite(uint16_t node_address, uint16_t i2c_port_handle,
         UCSI_CB_OnUserMessage(my->tag, true, "Remote I2C Write to node=0x%X failed", 1, node_address);
 }
 
-/*----------------------------------------
- * Debug Message output from Unicens stack:
- *----------------------------------------
- */
+/************************************************************************/
+/* Debug Message output from UNICENS stack:                             */
+/************************************************************************/
 #if defined(UCS_TR_ERROR) || defined(UCS_TR_INFO)
 #include <stdio.h>
 #define TRACE_BUFFER_SZ 200
@@ -859,7 +858,7 @@ void App_TraceError(void *ucs_user_ptr, const char module_str[], const char entr
 {
     va_list argptr;
     char outbuf[TRACE_BUFFER_SZ];
-    void *tag;
+    void *tag = NULL;
     UCSI_Data_t *my = (UCSI_Data_t *)ucs_user_ptr;
     if (my)
     {
@@ -876,7 +875,7 @@ void App_TraceInfo(void *ucs_user_ptr, const char module_str[], const char entry
 {
     va_list argptr;
     char outbuf[TRACE_BUFFER_SZ];
-    void *tag;
+    void *tag = NULL;
     UCSI_Data_t *my = (UCSI_Data_t *)ucs_user_ptr;
     if (my)
     {
