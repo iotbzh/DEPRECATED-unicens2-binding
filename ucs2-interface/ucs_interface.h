@@ -66,7 +66,7 @@ void UCSI_Init(UCSI_Data_t *pPriv, void *pTag);
 bool UCSI_NewConfig(UCSI_Data_t *pPriv, UcsXmlVal_t *ucsConfig);
 
 /**
- * \brief Offer the received control data from LLD to Unicens
+ * \brief Offer the received control data from LLD to UNICENS
  * \note Call this function only from single context (not from ISR)
  * \note This function can be called repeated until it return false
  *
