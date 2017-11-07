@@ -107,6 +107,10 @@ STATIC int onTimerCB (sd_event_source* source,uint64_t timer, void* pTag) {
     return 0;
 }
 
+void UCSI_CB_OnNetworkState(void *pTag, bool isAvailable, uint16_t packetBandwidth, uint8_t amountOfNodes)
+{
+}
+
 /* UCS2 Interface Timer Callback */
 PUBLIC void UCSI_CB_OnSetServiceTimer(void *pTag, uint16_t timeout) {
   uint64_t usec;
