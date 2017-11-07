@@ -169,7 +169,7 @@ static const char* ALL_SOCKETS[] = { MOST_SOCKET, USB_SOCKET, MLB_SOCKET,
 #define MLB_PORT                            "MediaLBPort"
 #define USB_PORT                            "USBPort"
 #define STRM_PORT                           "StreamPort"
-static const char* ALL_PORTS[] = { MLB_PORT, USB_PORT, STRM_PORT };
+static const char* ALL_PORTS[] = { MLB_PORT, USB_PORT, STRM_PORT, NULL };
 
 static const char* PHYSICAL_LAYER =         "PhysicalLayer";
 static const char* DEVICE_INTERFACES =      "DeviceInterfaces";
