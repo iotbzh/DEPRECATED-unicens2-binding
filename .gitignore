@@ -9,3 +9,4 @@ Install/
 .stfolder
 conf.d/packaging
 conf.d/*.env
+3rdparty/mxml/
