@@ -128,7 +128,6 @@ from the wrong relative directory, either you have to use 'set solib-search-path
     info sharedlibrary afb-*
 ```
 
-
 # Running an debugging on a target
 
 ```
