@@ -98,7 +98,6 @@ Warning: technically AGL bindings are shared libraries loaded thought 'dlopen'. 
 loaded libraries, but user should be warn that the actual path to sharelib symbols is directly inherited from DLOPEN.
 As a result if you change your directory after binder start with --workdir=xxx then GDB will not find symbols anymore
 
-
 ```
     Examples:
 
