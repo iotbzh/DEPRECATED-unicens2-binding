@@ -1290,12 +1290,17 @@ static ParseResult_t ParseScriptGpioPortCreate(xmlNode *act, Ucs_Ns_Script_t *sc
     req->OpCode = 0x2;
     res->OpCode = 0xC;
     req->DataLen = 3;
-    res->DataLen = 0xFF; /* Using Wildcard */
+    res->DataLen = 2;
     req->DataPtr = MCalloc(&priv->objList, req->DataLen, 1);
     if (NULL == req->DataPtr) return Parse_MemoryError;
+    res->DataPtr = MCalloc(&priv->objList, res->DataLen, 1);
+    if (NULL == res->DataPtr) return Parse_MemoryError;
     req->DataPtr[0] = 0; /*GPIO Port instance, always 0*/
     req->DataPtr[1] = MISC_HB(debounce);
     req->DataPtr[2] = MISC_LB(debounce);
+
+    res->DataPtr[0] = 0x1D;
+    res->DataPtr[1] = 0x00;
     return Parse_Success;
 }
 
@@ -1320,8 +1325,9 @@ static ParseResult_t ParseScriptGpioPinMode(xmlNode *act, Ucs_Ns_Script_t *scr, 
     payload[0] = 0x1D;
     payload[1] = 0x00;
     req->DataPtr = payload;
+    res->DataPtr = payload;
     req->DataLen = payloadLen + PORT_HANDLE_OFFSET;
-    res->DataLen = 0xFF; /* Using Wildcard */
+    res->DataLen = payloadLen + PORT_HANDLE_OFFSET;
     return Parse_Success;
 }
 
@@ -1343,15 +1349,20 @@ static ParseResult_t ParseScriptGpioPinState(xmlNode *act, Ucs_Ns_Script_t *scr,
     req->OpCode = 0x2;
     res->OpCode = 0xC;
     req->DataLen = 6;
-    res->DataLen = 0xFF; /* Using Wildcard */
+    res->DataLen = 8;
     req->DataPtr = MCalloc(&priv->objList, req->DataLen, 1);
     if (NULL == req->DataPtr) return Parse_MemoryError;
+    res->DataPtr = MCalloc(&priv->objList, res->DataLen, 1);
+    if (NULL == res->DataPtr) return Parse_MemoryError;
     req->DataPtr[0] = 0x1D;
     req->DataPtr[1] = 0x00;
     req->DataPtr[2] = MISC_HB(mask);
     req->DataPtr[3] = MISC_LB(mask);
     req->DataPtr[4] = MISC_HB(data);
     req->DataPtr[5] = MISC_LB(data);
+    memcpy(res->DataPtr, req->DataPtr, req->DataLen);
+    res->DataPtr[6] = 0x00;
+    res->DataPtr[7] = 0x00;
     return Parse_Success;
 }
 
@@ -1381,13 +1392,18 @@ static ParseResult_t ParseScriptPortCreate(xmlNode *act, Ucs_Ns_Script_t *scr, P
     req->OpCode = 0x2;
     res->OpCode = 0xC;
     req->DataLen = 4;
-    res->DataLen = 0xFF; /* Using Wildcard */
+    res->DataLen = 2;
     req->DataPtr = MCalloc(&priv->objList, req->DataLen, 1);
     if (NULL == req->DataPtr) return Parse_MemoryError;
+    res->DataPtr = MCalloc(&priv->objList, res->DataLen, 1);
+    if (NULL == res->DataPtr) return Parse_MemoryError;
     req->DataPtr[0] = 0x00; /* I2C Port Instance always 0 */
     req->DataPtr[1] = 0x00; /* I2C slave address, always 0, because we are Master */
     req->DataPtr[2] = 0x01; /* We are Master */
     req->DataPtr[3] = speed;
+
+    res->DataPtr[0] = 0x0F;
+    res->DataPtr[1] = 0x00;
     return Parse_Success;
 }
 
@@ -1437,8 +1453,10 @@ static ParseResult_t ParseScriptPortWrite(xmlNode *act, Ucs_Ns_Script_t *scr, Pr
     req->OpCode = 0x2;
     res->OpCode = 0xC;
     req->DataLen = payloadLength + HEADER_OFFSET;
-    res->DataLen = 0xFF; /* Using Wildcard */
+    res->DataLen = 4;
     req->DataPtr = payload;
+    res->DataPtr = MCalloc(&priv->objList, res->DataLen, 1);
+    if (NULL == res->DataPtr) return Parse_MemoryError;
 
     req->DataPtr[0] = 0x0F;
     req->DataPtr[1] = 0x00;
@@ -1448,6 +1466,14 @@ static ParseResult_t ParseScriptPortWrite(xmlNode *act, Ucs_Ns_Script_t *scr, Pr
     req->DataPtr[5] = length;
     req->DataPtr[6] = MISC_HB(timeout);
     req->DataPtr[7] = MISC_LB(timeout);
+
+    res->DataPtr[0] = 0x0F;
+    res->DataPtr[1] = 0x00;
+    res->DataPtr[2] = address;
+    if (2 == mode)
+        res->DataPtr[3] = blockCount * length;
+    else
+        res->DataPtr[3] = length;
     return Parse_Success;
 }
 
@@ -1472,9 +1498,11 @@ static ParseResult_t ParseScriptPortRead(xmlNode *act, Ucs_Ns_Script_t *scr, Pri
     req->OpCode = 0x2;
     res->OpCode = 0xC;
     req->DataLen = 6;
-    res->DataLen = 0xFF; /* Using Wildcard */
+    res->DataLen = 4;
     req->DataPtr = MCalloc(&priv->objList, req->DataLen, 1);
     if (NULL == req->DataPtr) return Parse_MemoryError;
+    res->DataPtr = MCalloc(&priv->objList, res->DataLen, 1);
+    if (NULL == res->DataPtr) return Parse_MemoryError;
 
     req->DataPtr[0] = 0x0F;
     req->DataPtr[1] = 0x00;
@@ -1482,6 +1510,11 @@ static ParseResult_t ParseScriptPortRead(xmlNode *act, Ucs_Ns_Script_t *scr, Pri
     req->DataPtr[3] = length;
     req->DataPtr[4] = MISC_HB(timeout);
     req->DataPtr[5] = MISC_LB(timeout);
+
+    res->DataPtr[0] = 0x0F;
+    res->DataPtr[1] = 0x00;
+    res->DataPtr[2] = address;
+    res->DataPtr[3] = length;
     return Parse_Success;
 }
 
