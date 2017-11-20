@@ -59,6 +59,7 @@ typedef struct {
   CdevData_t rx;
   CdevData_t tx;
   UCSI_Data_t ucsiData;
+  UcsXmlVal_t* ucsConfig;
 } ucsContextT;
 
 typedef struct {
@@ -66,7 +67,7 @@ typedef struct {
     
 } EventData_t;
 
-static ucsContextT *ucsContextS;
+static ucsContextT *ucsContextS = NULL;
 static EventData_t *eventData = NULL;
 
 PUBLIC void UcsXml_CB_OnError(const char format[], uint16_t vargsCnt, ...) {
@@ -190,7 +191,10 @@ PUBLIC void UCSI_CB_OnTxRequest(void *pTag, const uint8_t *pData, uint32_t len) 
  */
 void UCSI_CB_OnStop(void *pTag) {
     AFB_NOTICE ("UNICENS stopped");
-
+    if (NULL != ucsContextS && NULL != ucsContextS->ucsConfig) {
+        UcsXml_FreeVal(ucsContextS->ucsConfig);
+        ucsContextS->ucsConfig = NULL;
+    }
 }
 
 /** This callback will be raised, when ever an applicative message on the control channel arrived */
@@ -291,7 +295,7 @@ STATIC UcsXmlVal_t* ParseFile(struct afb_req request) {
     ssize_t readSize;
     int fdHandle ;
     struct stat fdStat;
-    UcsXmlVal_t* ucsConfig;
+    UcsXmlVal_t *ucsConfig = NULL;
 
     const char *filename = afb_req_value(request, "filename");
     if (!filename) {
@@ -322,6 +326,7 @@ STATIC UcsXmlVal_t* ParseFile(struct afb_req request) {
         afb_req_fail_f (request, "filexml-error", "File XML invalid: '%s'", filename);
         goto OnErrorExit;
     }
+    AFB_NOTICE ("Parsing result: %d Nodes, %d Scripts, Ethernet Bandwith %d bytes = %.2f MBit/s", ucsConfig->nodSize, ucsConfig->routesSize, ucsConfig->packetBw, (48 * 8 * ucsConfig->packetBw / 1000.0));
 
     return (ucsConfig);
 
@@ -330,15 +335,14 @@ STATIC UcsXmlVal_t* ParseFile(struct afb_req request) {
 }
 
 PUBLIC void ucs2_initialise (struct afb_req request) {
-    static UcsXmlVal_t *ucsConfig;
-    static ucsContextT ucsContext;
+    static ucsContextT ucsContext = { 0 };
 
     sd_event_source *evtSource;
     int err;
 
     /* Read and parse XML file */
-    ucsConfig = ParseFile (request);
-    if (NULL == ucsConfig) goto OnErrorExit;
+    ucsContext.ucsConfig = ParseFile (request);
+    if (NULL == ucsContext.ucsConfig) goto OnErrorExit;
 
     /* When ucsContextS is set, do not initalize UNICENS, CDEVs or system hooks, just load new XML */
     if (!ucsContextS)
@@ -362,7 +366,7 @@ PUBLIC void ucs2_initialise (struct afb_req request) {
         ucsContextS = &ucsContext;
     }
     /* Initialise UNICENS with parsed config */
-    if (!UCSI_NewConfig(&ucsContext.ucsiData, ucsConfig))   {
+    if (!UCSI_NewConfig(&ucsContext.ucsiData, ucsContext.ucsConfig))   {
         afb_req_fail_f (request, "UNICENS-init", "Fail to initialize UNICENS");
         goto OnErrorExit;
     }
