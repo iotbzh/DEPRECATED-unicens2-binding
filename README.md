@@ -21,12 +21,13 @@ AFB_daemon dependency on Standard Linux Distributions
     alsa-devel
     ElectricFence (BUG should not be mandatory)
     libopenssl-devel libgcrypt-devel libgnutls-devel (optional but requested by libmicrohttpd for https)
+    libxml2-devel
 
     OpenSuse >=42.2
-      zypper in gcc5 gdb gcc5-c++ git cmake make ElectricFence systemd-devel libopenssl-devel  libuuid-devel alsa-devel libgcrypt-devel libgnutls-devel libjson-c-devel file-devel mxml-devel
+      zypper in gcc5 gdb gcc5-c++ git cmake make ElectricFence systemd-devel libopenssl-devel  libuuid-devel alsa-devel libgcrypt-devel libgnutls-devel libjson-c-devel file-devel libxml2-devel
 
     Ubuntu >= 16.4 libuuid-devel
-      apt-get install cmake git electric-fence libsystemd-dev libssl-dev uuid-dev libasound2-dev libgcrypt20-dev libgnutls-dev libgnutls-dev libjson-c-dev libmagic-dev  libmxml-dev
+      apt-get install cmake git electric-fence libsystemd-dev libssl-dev uuid-dev libasound2-dev libgcrypt20-dev libgnutls-dev libgnutls-dev libjson-c-dev libmagic-dev libxml2-dev
 
     libmicrohttpd>=0.9.55 (as today OpenSuse-42.2 or Ubuntu-.16.4 ship older versions)
     afb-daemon from AGL Gerrit git clone https://gerrit.automotivelinux.org/gerrit/src/app-framework-binder
