@@ -182,6 +182,14 @@ PUBLIC void UCSI_CB_OnTxRequest(void *pTag, const uint8_t *pData, uint32_t len) 
     }
 }
 
+/** UcsXml_FreeVal can not be called directly within UNICENS context, need to service stack through mainloop */
+STATIC int OnStopCB (sd_event_source *source, uint64_t usec, void *pTag) {
+    if (NULL != ucsContextS && NULL != ucsContextS->ucsConfig) {
+        UcsXml_FreeVal(ucsContextS->ucsConfig);
+        ucsContextS->ucsConfig = NULL;
+    }
+}
+
 /**
  * \brief Callback when UNICENS instance has been stopped.
  * \note This event can be used to free memory holding the resources
@@ -191,10 +199,8 @@ PUBLIC void UCSI_CB_OnTxRequest(void *pTag, const uint8_t *pData, uint32_t len) 
  */
 void UCSI_CB_OnStop(void *pTag) {
     AFB_NOTICE ("UNICENS stopped");
-    if (NULL != ucsContextS && NULL != ucsContextS->ucsConfig) {
-        UcsXml_FreeVal(ucsContextS->ucsConfig);
-        ucsContextS->ucsConfig = NULL;
-    }
+   /* push an asynchronous request for loopback to call UcsXml_FreeVal */
+   sd_event_add_time(afb_daemon_get_event_loop(), NULL, CLOCK_MONOTONIC, 0, 0, OnStopCB, pTag);
 }
 
 /** This callback will be raised, when ever an applicative message on the control channel arrived */
