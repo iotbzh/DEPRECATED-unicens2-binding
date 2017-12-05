@@ -78,8 +78,8 @@ add_compile_options(-DUCS2_CFG_PATH="/etc/default/ucs:../data:./data")
 
 
 # LANG Specific compile flags set for all build types
-set(CMAKE_C_FLAGS "")
-set(CMAKE_CXX_FLAGS "")
+#set(CMAKE_C_FLAGS "")
+#set(CMAKE_CXX_FLAGS "")
 
 # Print a helper message when every thing is finished
 # ----------------------------------------------------
