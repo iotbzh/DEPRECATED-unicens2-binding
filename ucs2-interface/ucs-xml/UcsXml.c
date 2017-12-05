@@ -1304,7 +1304,7 @@ static ParseResult_t ParseScriptPortWrite(mxml_node_t *act, Ucs_Ns_Script_t *scr
 {
 #define HEADER_OFFSET 8
     const char *txt;
-    uint8_t mode, blockCount, address, length, payloadLength;
+    uint8_t mode=0, blockCount, address, length, payloadLength;
     uint16_t timeout;
     uint8_t *payload;
     Ucs_Ns_ConfigMsg_t *req, *res;
