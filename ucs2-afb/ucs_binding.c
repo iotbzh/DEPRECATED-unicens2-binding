@@ -81,7 +81,7 @@ PUBLIC void UcsXml_CB_OnError(const char format[], uint16_t vargsCnt, ...) {
     va_start(argptr, vargsCnt);
     vsprintf(outbuf, format, argptr);
     va_end(argptr);
-    AFB_WARNING (outbuf);
+    AFB_WARNING ("%s", outbuf);
 }
 
 PUBLIC uint16_t UCSI_CB_OnGetTime(void *pTag) {
@@ -133,7 +133,7 @@ void UCSI_CB_OnUserMessage(void *pTag, bool isError, const char format[],
     vsprintf(outbuf, format, argptr);
     va_end(argptr);
     if (isError)
-        AFB_NOTICE (outbuf);
+        AFB_NOTICE ("%s", outbuf);
 }
 
 /** UCSI_Service cannot be called directly within UNICENS context, need to service stack through mainloop */
